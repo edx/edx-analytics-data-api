@@ -24,3 +24,9 @@ elasticsearch-dsl>=7.2.1,<8.0.0
 # Use same version of edx-lint
 pylint==2.4.4
 pylint-django==2.0.11
+
+# botocore 1.34.144 depends on urllib3<1.27 and >=1.25.4; python_version < "3.10"
+urllib3<2.0.0
+
+# 0.0.5 is causing strange failures in the build
+accessible-pygments==0.0.4
