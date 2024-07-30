@@ -27,3 +27,6 @@ pylint-django==2.0.11
 
 # botocore 1.34.144 depends on urllib3<1.27 and >=1.25.4; python_version < "3.10"
 urllib3<2.0.0
+
+# path>16.14.0 has removed the deprecated abspath function, which is breaking the docs build
+path<16.15.0
