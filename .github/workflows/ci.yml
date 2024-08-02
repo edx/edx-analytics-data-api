@@ -28,7 +28,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Start Container
-      run: docker-compose -f .github/docker-compose-ci.yml up -d
+      run: docker compose -f .github/docker-compose-ci.yml up -d
 
     - name: Install dependencies
       run: |

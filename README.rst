@@ -42,7 +42,7 @@ With devstack running and this repo checked-out locally, you'll want to do the f
       $ make dev.pull.analyticsapi
       $ make dev.up.analyticsapi
       $ make dev.provision.analyticsapi     # this will provision the DB user, run migrations, etc.
-      $ docker-compose restart analyticsapi # maybe necessary to reset the DB connection
+      $ docker compose restart analyticsapi # maybe necessary to reset the DB connection
       $ make analyticsapi-logs              # make sure the app is running without errors
 
 
