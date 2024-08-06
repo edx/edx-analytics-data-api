@@ -39,7 +39,7 @@ cryptography==43.0.0
     # via
     #   django-fernet-fields-v2
     #   pyjwt
-django==4.2.14
+django==4.2.15
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in
@@ -134,7 +134,7 @@ edx-rest-api-client==5.7.1
     #   edx-enterprise-data
 factory-boy==3.3.0
     # via edx-enterprise-data
-faker==26.1.0
+faker==26.2.0
     # via factory-boy
 gevent==24.2.1
     # via -r requirements/production.in
