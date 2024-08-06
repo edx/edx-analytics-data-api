@@ -17,9 +17,9 @@ backports-zoneinfo==0.2.1
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.34.152
+boto3==1.34.154
     # via -r requirements/base.in
-botocore==1.34.152
+botocore==1.34.154
     # via
     #   boto3
     #   s3transfer
@@ -39,7 +39,7 @@ coreapi==2.3.3
     # via -r requirements/base.in
 coreschema==0.0.4
     # via coreapi
-coverage[toml]==7.6.0
+coverage[toml]==7.6.1
     # via
     #   -r requirements/test.in
     #   pytest-cov
@@ -131,7 +131,7 @@ edx-drf-extensions==10.3.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==8.3.0
+edx-enterprise-data==8.3.1
     # via -r requirements/base.in
 edx-opaque-keys==2.10.0
     # via
@@ -207,7 +207,7 @@ pluggy==1.5.0
     #   pytest
 psutil==6.0.0
     # via edx-django-utils
-pycodestyle==2.12.0
+pycodestyle==2.12.1
     # via -r requirements/test.in
 pycparser==2.22
     # via cffi
@@ -294,7 +294,7 @@ tomli==2.0.1
     # via
     #   coverage
     #   pytest
-tqdm==4.66.4
+tqdm==4.66.5
     # via -r requirements/base.in
 typing-extensions==4.12.2
     # via
