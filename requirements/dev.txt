@@ -15,9 +15,9 @@ backports-zoneinfo==0.2.1
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.4
+boto3==1.35.6
     # via -r requirements/base.in
-botocore==1.35.4
+botocore==1.35.6
     # via
     #   boto3
     #   s3transfer
@@ -118,7 +118,7 @@ edx-drf-extensions==10.3.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==8.9.0
+edx-enterprise-data==8.10.0
     # via -r requirements/base.in
 edx-opaque-keys==2.10.0
     # via
@@ -134,11 +134,11 @@ edx-rest-api-client==5.7.1
     #   edx-enterprise-data
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==27.4.0
+faker==28.0.0
     # via factory-boy
 html5lib==1.1
     # via -r requirements/base.in
-idna==3.7
+idna==3.8
     # via requests
 importlib-metadata==8.4.0
     # via markdown
@@ -172,7 +172,7 @@ packaging==24.1
     # via drf-yasg
 pandas==2.0.3
     # via edx-enterprise-data
-pbr==6.0.0
+pbr==6.1.0
     # via stevedore
 psutil==6.0.0
     # via edx-django-utils
@@ -253,7 +253,7 @@ urllib3==1.26.19
     #   requests
 webencodings==0.5.1
     # via html5lib
-zipp==3.20.0
+zipp==3.20.1
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
