@@ -17,7 +17,7 @@ def flatten(dictionary, parent_key='', sep='.'):
     items = []
     for key, value in dictionary.items():
         new_key = parent_key + sep + key if parent_key else key
-        if isinstance(value, collections.MutableMapping):
+        if isinstance(value, collections.abc.MutableMapping):
             items.extend(list(flatten(value, new_key).items()))
         else:
             items.append((new_key, value))

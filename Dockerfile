@@ -2,21 +2,40 @@ FROM ubuntu:focal as base
 
 # System requirements.
 
+# ENV variables for Python 3.11 support
+ARG PYTHON_VERSION=3.11
+ENV TZ=UTC
+ENV TERM=xterm-256color
+ENV DEBIAN_FRONTEND=noninteractive
+
+# software-properties-common is needed to setup Python 3.11 env
+RUN apt-get update && \
+  apt-get install -y software-properties-common && \
+  apt-add-repository -y ppa:deadsnakes/ppa
+
 # pkg-config; mysqlclient>=2.2.0 requires pkg-config (https://github.com/PyMySQL/mysqlclient/issues/620)
 
-RUN apt update && \
-  DEBIAN_FRONTEND=noninteractive apt-get install -qy \ 
+RUN apt-get update && \
+  apt-get install -qy \
+  build-essential \ 
   curl \
   vim \
   language-pack-en \
   build-essential \
-  python3.8-dev \
-  python3-virtualenv \
-  python3.8-distutils \
+  python${PYTHON_VERSION} \
+  python${PYTHON_VERSION}-dev \
+  python${PYTHON_VERSION}-distutils \
   libmysqlclient-dev \
   pkg-config \
   libssl-dev && \
   rm -rf /var/lib/apt/lists/*
+
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1
+
+# need to use virtualenv pypi package with Python 3.11
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION}
+RUN pip install virtualenv
 
 # Use UTF-8.
 RUN locale-gen en_US.UTF-8
@@ -39,7 +58,7 @@ ENV ANALYTICS_API_CFG "/edx/etc/${ANALYTICS_API_SERVICE_NAME}.yml"
 # Working directory will be root of repo.
 WORKDIR ${ANALYTICS_API_CODE_DIR}
 
-RUN virtualenv -p python3.8 --always-copy ${ANALYTICS_API_VENV_DIR}
+RUN virtualenv -p python${PYTHON_VERSION} --always-copy ${ANALYTICS_API_VENV_DIR}
 
 # Expose canonical Analytics port
 EXPOSE 19001
