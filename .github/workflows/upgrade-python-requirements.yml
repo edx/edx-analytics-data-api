@@ -20,7 +20,7 @@ jobs:
       # team_reviewers: ""
       email_address: "cosmonauts-requirements-update@2u-internal.opsgenie.net"
       send_success_notification: true
-      python_version: 3.12
+      python_version: 3.11
     secrets:
       requirements_bot_github_token: ${{ secrets.REQUIREMENTS_BOT_GITHUB_TOKEN }}
       requirements_bot_github_email: ${{ secrets.REQUIREMENTS_BOT_GITHUB_EMAIL }}

@@ -2,8 +2,8 @@ FROM ubuntu:focal as base
 
 # System requirements.
 
-# ENV variables for Python 3.12 support
-ARG PYTHON_VERSION=3.12
+# ENV variables for Python 3.11 support
+ARG PYTHON_VERSION=3.11
 ENV TZ=UTC
 ENV TERM=xterm-256color
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,8 +15,8 @@ RUN apt-get update && \
 
 # pkg-config; mysqlclient>=2.2.0 requires pkg-config (https://github.com/PyMySQL/mysqlclient/issues/620)
 
-RUN apt update && \
-  DEBIAN_FRONTEND=noninteractive apt-get install -qy \ 
+RUN apt-get update && \
+  apt-get install -qy \ 
   curl \
   vim \
   language-pack-en \
@@ -31,9 +31,6 @@ RUN apt update && \
   pkg-config \
   libssl-dev && \
   rm -rf /var/lib/apt/lists/*
-
-# Set Zoneinfo settings for Python 3.12 support
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # need to use virtualenv pypi package with Python 3.12
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION}
