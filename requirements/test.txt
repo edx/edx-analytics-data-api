@@ -17,15 +17,15 @@ backports-zoneinfo==0.2.1
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.8
+boto3==1.35.15
     # via -r requirements/base.in
-botocore==1.35.8
+botocore==1.35.15
     # via
     #   boto3
     #   s3transfer
-certifi==2024.7.4
+certifi==2024.8.30
     # via requests
-cffi==1.17.0
+cffi==1.17.1
     # via
     #   cryptography
     #   pynacl
@@ -43,13 +43,13 @@ coverage[toml]==7.6.1
     # via
     #   -r requirements/test.in
     #   pytest-cov
-cryptography==43.0.0
+cryptography==43.0.1
     # via
     #   django-fernet-fields-v2
     #   pyjwt
 ddt==1.7.2
     # via -r requirements/test.in
-diff-cover==9.1.1
+diff-cover==9.2.0
     # via -r requirements/test.in
     # via
     #   -c requirements/constraints.txt
@@ -84,7 +84,7 @@ django-fernet-fields-v2==0.9
     # via edx-enterprise-data
 django-filter==24.3
     # via edx-enterprise-data
-django-model-utils==4.5.1
+django-model-utils==5.0.0
     # via
     #   edx-enterprise-data
     #   edx-rbac
@@ -126,14 +126,14 @@ edx-django-utils==5.15.0
     #   edx-drf-extensions
     #   edx-enterprise-data
     #   edx-rest-api-client
-edx-drf-extensions==10.3.0
+edx-drf-extensions==10.4.0
     # via
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
 edx-enterprise-data==8.11.1
     # via -r requirements/base.in
-edx-opaque-keys==2.10.0
+edx-opaque-keys==2.11.0
     # via
     #   -r requirements/base.in
     #   edx-ccx-keys
@@ -141,7 +141,7 @@ edx-opaque-keys==2.10.0
     #   edx-enterprise-data
 edx-rbac==1.10.0
     # via edx-enterprise-data
-edx-rest-api-client==5.7.1
+edx-rest-api-client==6.0.0
     # via
     #   -r requirements/base.in
     #   edx-enterprise-data
@@ -149,7 +149,7 @@ exceptiongroup==1.2.2
     # via pytest
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==28.0.0
+faker==28.4.1
     # via factory-boy
 freezegun==1.5.1
     # via -r requirements/test.in
@@ -230,13 +230,13 @@ pymongo==4.8.0
     # via edx-opaque-keys
 pynacl==1.5.0
     # via edx-django-utils
-pytest==8.3.2
+pytest==8.3.3
     # via
     #   pytest-cov
     #   pytest-django
 pytest-cov==5.0.0
     # via -r requirements/test.in
-pytest-django==4.8.0
+pytest-django==4.9.0
     # via -r requirements/test.in
 python-dateutil==2.9.0.post0
     # via
@@ -263,10 +263,9 @@ requests==2.32.3
     #   edx-enterprise-data
     #   edx-rest-api-client
     #   responses
-    #   slumber
 responses==0.25.3
     # via -r requirements/test.in
-rules==3.4
+rules==3.5
     # via edx-enterprise-data
 s3transfer==0.10.2
     # via boto3
@@ -280,8 +279,6 @@ six==1.16.0
     #   edx-rbac
     #   html5lib
     #   python-dateutil
-slumber==0.7.1
-    # via edx-rest-api-client
 snowballstemmer==2.2.0
     # via pydocstyle
 sqlparse==0.5.1
@@ -307,7 +304,7 @@ uritemplate==4.1.1
     # via
     #   coreapi
     #   drf-yasg
-urllib3==1.26.19
+urllib3==1.26.20
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in

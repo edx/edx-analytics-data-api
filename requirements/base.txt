@@ -15,15 +15,15 @@ backports-zoneinfo==0.2.1
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.8
+boto3==1.35.15
     # via -r requirements/base.in
-botocore==1.35.8
+botocore==1.35.15
     # via
     #   boto3
     #   s3transfer
-certifi==2024.7.4
+certifi==2024.8.30
     # via requests
-cffi==1.17.0
+cffi==1.17.1
     # via
     #   cryptography
     #   pynacl
@@ -35,11 +35,11 @@ coreapi==2.3.3
     # via -r requirements/base.in
 coreschema==0.0.4
     # via coreapi
-cryptography==43.0.0
+cryptography==43.0.1
     # via
     #   django-fernet-fields-v2
     #   pyjwt
-django==4.2.15
+django==4.2.16
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in
@@ -71,7 +71,7 @@ django-fernet-fields-v2==0.9
     # via edx-enterprise-data
 django-filter==24.3
     # via edx-enterprise-data
-django-model-utils==4.5.1
+django-model-utils==5.0.0
     # via
     #   edx-enterprise-data
     #   edx-rbac
@@ -113,14 +113,14 @@ edx-django-utils==5.15.0
     #   edx-drf-extensions
     #   edx-enterprise-data
     #   edx-rest-api-client
-edx-drf-extensions==10.3.0
+edx-drf-extensions==10.4.0
     # via
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==8.11.0
+edx-enterprise-data==8.11.1
     # via -r requirements/base.in
-edx-opaque-keys==2.10.0
+edx-opaque-keys==2.11.0
     # via
     #   -r requirements/base.in
     #   edx-ccx-keys
@@ -128,13 +128,13 @@ edx-opaque-keys==2.10.0
     #   edx-enterprise-data
 edx-rbac==1.10.0
     # via edx-enterprise-data
-edx-rest-api-client==5.7.1
+edx-rest-api-client==6.0.0
     # via
     #   -r requirements/base.in
     #   edx-enterprise-data
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==28.0.0
+faker==28.4.1
     # via factory-boy
 html5lib==1.1
     # via -r requirements/base.in
@@ -208,8 +208,7 @@ requests==2.32.3
     #   edx-drf-extensions
     #   edx-enterprise-data
     #   edx-rest-api-client
-    #   slumber
-rules==3.4
+rules==3.5
     # via edx-enterprise-data
 s3transfer==0.10.2
     # via boto3
@@ -222,8 +221,6 @@ six==1.16.0
     #   edx-rbac
     #   html5lib
     #   python-dateutil
-slumber==0.7.1
-    # via edx-rest-api-client
 sqlparse==0.5.1
     # via django
 stevedore==5.3.0
@@ -243,7 +240,7 @@ uritemplate==4.1.1
     # via
     #   coreapi
     #   drf-yasg
-urllib3==1.26.19
+urllib3==1.26.20
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in
