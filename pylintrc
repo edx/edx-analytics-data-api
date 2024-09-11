@@ -30,40 +30,28 @@ load-plugins=
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once).
 disable=
-# Never going to use these
-# I0011: Locally disabling W0232
-# W0141: Used builtin function 'map'
-# W0142: Used * or ** magic
-# R0921: Abstract class not referenced
-# R0922: Abstract class is only referenced 1 times
-    I0011,W0141,W0142,R0921,R0922,
-
-   duplicate-code,
-# Django makes classes that trigger these
-# W0232: Class has no __init__ method
-    W0232,
-
-# Might use these when the code is in better shape
-# C0302: Too many lines in module
-# R0201: Method could be a function
-# R0901: Too many ancestors
-# R0902: Too many instance attributes
-# R0903: Too few public methods (1/2)
-# R0904: Too many public methods
-# R0911: Too many return statements
-# R0912: Too many branches
-# R0913: Too many arguments
-# R0914: Too many local variables
-    C0302,R0201,R0901,R0902,R0903,R0904,R0911,R0912,R0913,R0914,
-# W0511: TODOs etc
-    W0511,
-# E1103: maybe no member
-    E1103,
-# C0111: missing docstring (handled by pep257)
-    C0111,
-
-# We can decide if names are invalid on our own
+    no-member,
+    locally-disabled,
+    duplicate-code,
     invalid-name,
+    consider-using-f-string,
+    raise-missing-from,
+    deprecated-decorator,
+    invalid-str-returned,
+    use-yield-from,
+    consider-using-generator,
+    use-dict-literal,
+    not-callable,
+    redundant-u-string-prefix,
+    consider-using-from-import,
+    missing-module-docstring,
+    missing-function-docstring,
+    missing-class-docstring,
+    too-many-arguments,
+    too-many-ancestors,
+    too-many-locals,
+    too-many-lines,
+    too-few-public-methods,
 
 [REPORTS]
 
@@ -73,11 +61,6 @@ output-format=text
 
 # Include message's id in output
 msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}"
-
-# Put messages in a separate file for each module / package specified on the
-# command line instead of printing them on stdout. Reports (if any) will be
-# written in a file name "pylint_global.[txt|html]".
-files-output=no
 
 # Tells whether to display a full report or only the messages
 reports=no
@@ -121,9 +104,6 @@ generated-members=
 
 [BASIC]
 
-# List of builtins function names that should not be used, separated by a comma
-bad-functions=map,filter,apply,input
-
 # Regular expression which should only match correct module names
 module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
 
@@ -166,7 +146,7 @@ no-docstring-rgx=__.*__|test_.*|setUp|tearDown
 [MISCELLANEOUS]
 
 # List of note tags to take in consideration, separated by a comma.
-notes=FIXME,XXX,TODO
+notes=FIXME,XXX
 
 
 [FORMAT]
@@ -240,9 +220,6 @@ max-locals=15
 
 # Maximum number of return / yield for function / method body
 max-returns=6
-
-# Maximum number of branch for function / method body
-max-branchs=12
 
 # Maximum number of statements in function / method body
 max-statements=50
