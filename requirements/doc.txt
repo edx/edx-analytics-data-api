@@ -21,9 +21,9 @@ beautifulsoup4==4.12.3
     # via pydata-sphinx-theme
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.17
+boto3==1.35.19
     # via -r requirements/base.in
-botocore==1.35.17
+botocore==1.35.19
     # via
     #   boto3
     #   s3transfer
@@ -128,7 +128,7 @@ edx-drf-extensions==10.4.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==8.12.0
+edx-enterprise-data==8.12.1
     # via -r requirements/base.in
 edx-opaque-keys==2.11.0
     # via
@@ -148,7 +148,7 @@ faker==28.4.1
     # via factory-boy
 html5lib==1.1
     # via -r requirements/base.in
-idna==3.8
+idna==3.10
     # via requests
 imagesize==1.4.1
     # via sphinx
