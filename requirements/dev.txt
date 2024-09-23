@@ -114,7 +114,7 @@ edx-drf-extensions==10.4.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.0.0
+edx-enterprise-data==9.0.1
     # via -r requirements/base.in
 edx-opaque-keys==2.11.0
     # via
@@ -156,7 +156,7 @@ mysqlclient==2.2.4
     # via -r requirements/dev.in
 newrelic==9.13.0
     # via edx-django-utils
-numpy==2.1.1
+numpy==1.24.4
     # via
     #   edx-enterprise-data
     #   pandas
@@ -164,7 +164,7 @@ ordered-set==4.1.0
     # via -r requirements/base.in
 packaging==24.1
     # via drf-yasg
-pandas==2.2.3
+pandas==2.0.3
     # via edx-enterprise-data
 pbr==6.1.0
     # via stevedore
