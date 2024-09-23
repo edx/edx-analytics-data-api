@@ -48,6 +48,7 @@ disable=
     missing-function-docstring,
     missing-class-docstring,
     too-many-arguments,
+    too-many-positional-arguments,
     too-many-ancestors,
     too-many-locals,
     too-many-lines,
