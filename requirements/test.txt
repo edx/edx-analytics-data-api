@@ -9,13 +9,13 @@ asgiref==3.8.1
     #   django
     #   django-cors-headers
     #   django-countries
-astroid==3.3.3
+astroid==3.2.4
     # via pylint
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.24
+boto3==1.35.19
     # via -r requirements/base.in
-botocore==1.35.24
+botocore==1.35.19
     # via
     #   boto3
     #   s3transfer
@@ -129,7 +129,7 @@ edx-drf-extensions==10.4.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.0.0
+edx-enterprise-data==8.12.1
     # via -r requirements/base.in
 edx-opaque-keys==2.11.0
     # via
@@ -145,7 +145,7 @@ edx-rest-api-client==6.0.0
     #   edx-enterprise-data
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==29.0.0
+faker==28.4.1
     # via factory-boy
 freezegun==1.5.1
     # via -r requirements/test.in
@@ -179,7 +179,7 @@ mysql-connector-python==9.0.0
     # via edx-enterprise-data
 newrelic==9.13.0
     # via edx-django-utils
-numpy==2.1.1
+numpy==1.24.4
     # via
     #   edx-enterprise-data
     #   pandas
@@ -189,11 +189,11 @@ packaging==24.1
     # via
     #   drf-yasg
     #   pytest
-pandas==2.2.3
+pandas==2.0.3
     # via edx-enterprise-data
 pbr==6.1.0
     # via stevedore
-platformdirs==4.3.6
+platformdirs==4.3.3
     # via pylint
 pluggy==1.5.0
     # via
@@ -214,11 +214,11 @@ pyjwt[crypto]==2.9.0
     #   drf-jwt
     #   edx-drf-extensions
     #   edx-rest-api-client
-pylint==3.3.0
+pylint==3.2.7
     # via -r requirements/test.in
 pymemcache==4.0.0
     # via -r requirements/base.in
-pymongo==4.9.1
+pymongo==4.8.0
     # via edx-opaque-keys
 pynacl==1.5.0
     # via edx-django-utils
