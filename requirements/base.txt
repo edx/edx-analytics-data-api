@@ -11,9 +11,9 @@ asgiref==3.8.1
     #   django-countries
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.24
+boto3==1.35.25
     # via -r requirements/base.in
-botocore==1.35.24
+botocore==1.35.25
     # via
     #   boto3
     #   s3transfer
@@ -227,7 +227,7 @@ typing-extensions==4.12.2
     # via
     #   django-countries
     #   edx-opaque-keys
-tzdata==2024.1
+tzdata==2024.2
     # via pandas
 uritemplate==4.1.1
     # via
