@@ -214,7 +214,7 @@ pyjwt[crypto]==2.9.0
     #   drf-jwt
     #   edx-drf-extensions
     #   edx-rest-api-client
-pylint==3.3.0
+pylint==3.3.1
     # via -r requirements/test.in
 pymemcache==4.0.0
     # via -r requirements/base.in
