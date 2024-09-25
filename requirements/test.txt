@@ -13,9 +13,9 @@ astroid==3.3.4
     # via pylint
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.25
+boto3==1.35.26
     # via -r requirements/base.in
-botocore==1.35.25
+botocore==1.35.26
     # via
     #   boto3
     #   s3transfer
@@ -129,7 +129,7 @@ edx-drf-extensions==10.4.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.1.1
+edx-enterprise-data==9.2.0
     # via -r requirements/base.in
 edx-opaque-keys==2.11.0
     # via
@@ -214,7 +214,7 @@ pyjwt[crypto]==2.9.0
     #   drf-jwt
     #   edx-drf-extensions
     #   edx-rest-api-client
-pylint==3.3.0
+pylint==3.3.1
     # via -r requirements/test.in
 pymemcache==4.0.0
     # via -r requirements/base.in
