@@ -11,9 +11,9 @@ asgiref==3.8.1
     #   django-countries
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.26
+boto3==1.35.29
     # via -r requirements/base.in
-botocore==1.35.26
+botocore==1.35.29
     # via
     #   boto3
     #   s3transfer
@@ -114,7 +114,7 @@ edx-drf-extensions==10.4.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.2.1
+edx-enterprise-data==9.3.0
     # via -r requirements/base.in
 edx-opaque-keys==2.11.0
     # via
@@ -130,7 +130,7 @@ edx-rest-api-client==6.0.0
     #   edx-enterprise-data
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==29.0.0
+faker==30.0.0
     # via factory-boy
 html5lib==1.1
     # via -r requirements/base.in
@@ -154,7 +154,7 @@ mysql-connector-python==9.0.0
     # via edx-enterprise-data
 mysqlclient==2.2.4
     # via -r requirements/dev.in
-newrelic==9.13.0
+newrelic==10.0.0
     # via edx-django-utils
 numpy==1.24.4
     # via
