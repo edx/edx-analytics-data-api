@@ -106,8 +106,10 @@ djangorestframework-csv==3.0.2
     # via
     #   -r requirements/base.in
     #   edx-enterprise-data
-dnspython==2.7.0
-    # via pymongo
+dnspython==2.6.1
+    # via
+    #   -c requirements/constraints.txt
+    #   pymongo
 drf-jwt==1.19.2
     # via edx-drf-extensions
 drf-yasg==1.21.7
