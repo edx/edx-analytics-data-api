@@ -9,13 +9,13 @@ asgiref==3.8.1
     #   django
     #   django-cors-headers
     #   django-countries
-astroid==3.3.4
+astroid==3.3.5
     # via pylint
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.32
+boto3==1.35.34
     # via -r requirements/base.in
-botocore==1.35.32
+botocore==1.35.34
     # via
     #   boto3
     #   s3transfer
@@ -106,7 +106,7 @@ djangorestframework-csv==3.0.2
     # via
     #   -r requirements/base.in
     #   edx-enterprise-data
-dnspython==2.6.1
+dnspython==2.7.0
     # via pymongo
 drf-jwt==1.19.2
     # via edx-drf-extensions
@@ -129,7 +129,7 @@ edx-drf-extensions==10.4.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.4.1
+edx-enterprise-data==9.5.0
     # via -r requirements/base.in
 edx-opaque-keys==2.11.0
     # via
