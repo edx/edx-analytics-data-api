@@ -26,3 +26,6 @@ urllib3<2.0.0
 
 # path>16.14.0 has removed the deprecated abspath function, which is breaking the docs build
 path<16.15.0
+
+# dnspython 2.7.0 Requires-Python >=3.9
+dnspython<2.7.0

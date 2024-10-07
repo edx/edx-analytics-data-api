@@ -101,8 +101,10 @@ djangorestframework-csv==3.0.2
     # via
     #   -r requirements/base.in
     #   edx-enterprise-data
-dnspython==2.7.0
-    # via pymongo
+dnspython==2.6.1
+    # via
+    #   -c requirements/constraints.txt
+    #   pymongo
 docutils==0.21.2
     # via
     #   pydata-sphinx-theme
