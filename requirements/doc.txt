@@ -21,9 +21,9 @@ beautifulsoup4==4.12.3
     # via pydata-sphinx-theme
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.34
+boto3==1.35.40
     # via -r requirements/base.in
-botocore==1.35.34
+botocore==1.35.40
     # via
     #   boto3
     #   s3transfer
@@ -33,7 +33,7 @@ cffi==1.17.1
     # via
     #   cryptography
     #   pynacl
-charset-normalizer==3.3.2
+charset-normalizer==3.4.0
     # via requests
 click==8.1.7
     # via edx-django-utils
@@ -65,7 +65,7 @@ django==4.2.16
     #   edx-drf-extensions
     #   edx-enterprise-data
     #   edx-rbac
-django-cors-headers==4.4.0
+django-cors-headers==4.5.0
     # via -r requirements/base.in
 django-countries==7.6.1
     # via -r requirements/base.in
@@ -119,7 +119,7 @@ edx-ccx-keys==1.3.0
     # via -r requirements/base.in
 edx-django-release-util==1.4.0
     # via -r requirements/base.in
-edx-django-utils==5.16.0
+edx-django-utils==6.0.0
     # via
     #   -r requirements/base.in
     #   edx-drf-extensions
@@ -130,7 +130,7 @@ edx-drf-extensions==10.4.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.5.1
+edx-enterprise-data==9.6.0
     # via -r requirements/base.in
 edx-opaque-keys==2.11.0
     # via
@@ -146,7 +146,7 @@ edx-rest-api-client==6.0.0
     #   edx-enterprise-data
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==30.1.0
+faker==30.3.0
     # via factory-boy
 html5lib==1.1
     # via -r requirements/base.in
@@ -168,11 +168,11 @@ jmespath==1.0.1
     #   botocore
 markdown==3.7
     # via -r requirements/base.in
-markupsafe==2.1.5
+markupsafe==3.0.1
     # via jinja2
-mysql-connector-python==9.0.0
+mysql-connector-python==9.1.0
     # via edx-enterprise-data
-newrelic==10.0.0
+newrelic==10.1.0
     # via edx-django-utils
 numpy==1.24.4
     # via
@@ -239,7 +239,7 @@ requests==2.32.3
     #   sphinx
 rules==3.5
     # via edx-enterprise-data
-s3transfer==0.10.2
+s3transfer==0.10.3
     # via boto3
 semantic-version==2.10.0
     # via edx-drf-extensions
@@ -254,7 +254,7 @@ snowballstemmer==2.2.0
     # via sphinx
 soupsieve==2.6
     # via beautifulsoup4
-sphinx==8.0.2
+sphinx==8.1.3
     # via
     #   -r requirements/doc.in
     #   pydata-sphinx-theme
