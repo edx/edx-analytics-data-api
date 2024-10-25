@@ -2,8 +2,8 @@ FROM ubuntu:focal as base
 
 # System requirements.
 
-# ENV variables for Python 3.11 support
-ARG PYTHON_VERSION=3.11
+# ENV variables for Python 3.12 support
+ARG PYTHON_VERSION=3.12
 ENV TZ=UTC
 ENV TERM=xterm-256color
 ENV DEBIAN_FRONTEND=noninteractive
