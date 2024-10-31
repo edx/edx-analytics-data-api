@@ -29,3 +29,7 @@ path<16.15.0
 
 # dnspython 2.7.0 Requires-Python >=3.9
 dnspython<2.7.0
+
+# edx-enterprise-data==10.0.0 upgrades to Python 3.12 which is currently not supported
+# This constraint can be removed once Python 3.12 upgrade is complete
+edx-enterprise-data<10.0.0
