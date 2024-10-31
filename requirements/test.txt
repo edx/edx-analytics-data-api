@@ -11,8 +11,9 @@ asgiref==3.8.1
     #   django-countries
 astroid==3.2.4
     # via pylint
-backports-zoneinfo==0.2.1
+backports-zoneinfo==0.2.1 ; python_version < "3.9"
     # via
+    #   -c /Users/usama.sadiq/Desktop/edX/edx-analytics-data-api/requirements/constraints.txt
     #   django
     #   djangorestframework
 boto==2.49.0
