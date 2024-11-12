@@ -37,7 +37,7 @@ cryptography==43.0.3
     #   pyjwt
 django==4.2.16
     # via
-    #   -c /Users/usama.sadiq/Desktop/edX/edx-analytics-data-api/requirements/constraints.txt
+    #   -c /home/runner/work/edx-analytics-data-api/edx-analytics-data-api/requirements/constraints.txt
     #   -r requirements/base.in
     #   django-cors-headers
     #   django-crum
@@ -73,7 +73,7 @@ django-model-utils==5.0.0
     #   edx-rbac
 django-storages==1.10.1
     # via
-    #   -c /Users/usama.sadiq/Desktop/edX/edx-analytics-data-api/requirements/constraints.txt
+    #   -c /home/runner/work/edx-analytics-data-api/edx-analytics-data-api/requirements/constraints.txt
     #   -r requirements/base.in
 django-waffle==4.1.0
     # via
@@ -116,7 +116,7 @@ edx-drf-extensions==10.5.0
     #   edx-rbac
 edx-enterprise-data==9.7.1
     # via
-    #   -c /Users/usama.sadiq/Desktop/edX/edx-analytics-data-api/requirements/constraints.txt
+    #   -c /home/runner/work/edx-analytics-data-api/edx-analytics-data-api/requirements/constraints.txt
     #   -r requirements/base.in
 edx-opaque-keys==2.11.0
     # via
@@ -238,7 +238,7 @@ uritemplate==4.1.1
     #   drf-yasg
 urllib3==1.26.20
     # via
-    #   -c /Users/usama.sadiq/Desktop/edX/edx-analytics-data-api/requirements/constraints.txt
+    #   -c /home/runner/work/edx-analytics-data-api/edx-analytics-data-api/requirements/constraints.txt
     #   -r requirements/base.in
     #   botocore
     #   requests
