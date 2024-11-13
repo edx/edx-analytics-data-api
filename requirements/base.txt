@@ -11,9 +11,9 @@ asgiref==3.8.1
     #   django-countries
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.58
+boto3==1.35.59
     # via -r requirements/base.in
-botocore==1.35.58
+botocore==1.35.59
     # via
     #   boto3
     #   s3transfer
@@ -37,7 +37,7 @@ cryptography==43.0.3
     #   pyjwt
 django==4.2.16
     # via
-    #   -c /Users/usama.sadiq/Desktop/edX/edx-analytics-data-api/requirements/constraints.txt
+    #   -c requirements/constraints.txt
     #   -r requirements/base.in
     #   django-cors-headers
     #   django-crum
@@ -73,7 +73,7 @@ django-model-utils==5.0.0
     #   edx-rbac
 django-storages==1.10.1
     # via
-    #   -c /Users/usama.sadiq/Desktop/edX/edx-analytics-data-api/requirements/constraints.txt
+    #   -c requirements/constraints.txt
     #   -r requirements/base.in
 django-waffle==4.1.0
     # via
@@ -114,9 +114,9 @@ edx-drf-extensions==10.5.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.7.1
+edx-enterprise-data==9.7.2
     # via
-    #   -c /Users/usama.sadiq/Desktop/edX/edx-analytics-data-api/requirements/constraints.txt
+    #   -c requirements/constraints.txt
     #   -r requirements/base.in
 edx-opaque-keys==2.11.0
     # via
@@ -132,7 +132,7 @@ edx-rest-api-client==6.0.0
     #   edx-enterprise-data
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==30.8.2
+faker==32.1.0
     # via factory-boy
 html5lib==1.1
     # via -r requirements/base.in
@@ -238,7 +238,7 @@ uritemplate==4.1.1
     #   drf-yasg
 urllib3==1.26.20
     # via
-    #   -c /Users/usama.sadiq/Desktop/edX/edx-analytics-data-api/requirements/constraints.txt
+    #   -c requirements/constraints.txt
     #   -r requirements/base.in
     #   botocore
     #   requests
