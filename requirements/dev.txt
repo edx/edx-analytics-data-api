@@ -16,9 +16,9 @@ backports-zoneinfo==0.2.1 ; python_version < "3.9"
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.60
+boto3==1.35.64
     # via -r requirements/base.in
-botocore==1.35.60
+botocore==1.35.64
     # via
     #   boto3
     #   s3transfer
@@ -80,7 +80,7 @@ django-storages==1.10.1
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in
-django-waffle==4.1.0
+django-waffle==4.2.0
     # via
     #   edx-django-utils
     #   edx-drf-extensions
@@ -139,7 +139,7 @@ edx-rest-api-client==6.0.0
     #   edx-enterprise-data
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==32.1.0
+faker==33.0.0
     # via factory-boy
 html5lib==1.1
     # via -r requirements/base.in
@@ -165,7 +165,7 @@ mysql-connector-python==9.0.0
     # via edx-enterprise-data
 mysqlclient==2.2.6
     # via -r requirements/dev.in
-newrelic==10.2.0
+newrelic==10.3.0
     # via edx-django-utils
 numpy==1.24.4
     # via
