@@ -39,8 +39,8 @@ jobs:
       run: docker exec -t analytics_api_testing bash -c "cd /edx/app/analytics_api/analytics_api/
         && export TOXENV=django42 && make test.requirements tox.requirements ${{ matrix.targets }}"
 
-    # - name: Run Coverage
-    #   if: matrix.python-version == '3.11' && matrix.targets=='main.test'
-    #   uses: codecov/codecov-action@v1
-    #   with:
-    #     fail_ci_if_error: true
+    - name: Run Coverage
+      if: matrix.python-version == '3.11' && matrix.targets=='main.test'
+      uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
