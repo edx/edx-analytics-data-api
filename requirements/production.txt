@@ -16,9 +16,9 @@ backports-zoneinfo==0.2.1 ; python_version < "3.9"
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.60
+boto3==1.35.73
     # via -r requirements/base.in
-botocore==1.35.60
+botocore==1.35.73
     # via
     #   boto3
     #   s3transfer
@@ -36,7 +36,7 @@ coreapi==2.3.3
     # via -r requirements/base.in
 coreschema==0.0.4
     # via coreapi
-cryptography==43.0.3
+cryptography==44.0.0
     # via
     #   django-fernet-fields-v2
     #   pyjwt
@@ -80,7 +80,7 @@ django-storages==1.10.1
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in
-django-waffle==4.1.0
+django-waffle==4.2.0
     # via
     #   edx-django-utils
     #   edx-drf-extensions
@@ -106,11 +106,11 @@ drf-yasg==1.21.8
     # via edx-api-doc-tools
 edx-api-doc-tools==2.0.0
     # via -r requirements/base.in
-edx-ccx-keys==1.3.0
+edx-ccx-keys==2.0.2
     # via -r requirements/base.in
 edx-django-release-util==1.4.0
     # via -r requirements/base.in
-edx-django-utils==7.0.0
+edx-django-utils==7.0.1
     # via
     #   -r requirements/base.in
     #   edx-drf-extensions
@@ -139,7 +139,7 @@ edx-rest-api-client==6.0.0
     #   edx-enterprise-data
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==32.1.0
+faker==33.1.0
     # via factory-boy
 gevent==24.2.1
     # via -r requirements/production.in
@@ -171,7 +171,7 @@ mysql-connector-python==9.0.0
     # via edx-enterprise-data
 mysqlclient==2.2.6
     # via -r requirements/production.in
-newrelic==10.2.0
+newrelic==10.3.1
     # via
     #   -r requirements/production.in
     #   edx-django-utils
@@ -230,7 +230,7 @@ requests==2.32.3
     #   edx-rest-api-client
 rules==3.5
     # via edx-enterprise-data
-s3transfer==0.10.3
+s3transfer==0.10.4
     # via boto3
 semantic-version==2.10.0
     # via edx-drf-extensions
@@ -247,7 +247,7 @@ stevedore==5.3.0
     # via
     #   edx-django-utils
     #   edx-opaque-keys
-tqdm==4.67.0
+tqdm==4.67.1
     # via -r requirements/base.in
 typing-extensions==4.12.2
     # via
@@ -273,7 +273,7 @@ zipp==3.20.2
     # via importlib-metadata
 zope-event==5.0
     # via gevent
-zope-interface==7.1.1
+zope-interface==7.2
     # via gevent
 
 # The following packages are considered to be unsafe in a requirements file:
