@@ -18,9 +18,9 @@ backports-zoneinfo==0.2.1 ; python_version < "3.9"
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.82
+boto3==1.35.93
     # via -r requirements/base.in
-botocore==1.35.82
+botocore==1.35.93
     # via
     #   boto3
     #   s3transfer
@@ -32,9 +32,9 @@ cffi==1.17.1
     #   pynacl
 chardet==5.2.0
     # via diff-cover
-charset-normalizer==3.4.0
+charset-normalizer==3.4.1
     # via requests
-click==8.1.7
+click==8.1.8
     # via edx-django-utils
 coreapi==2.3.3
     # via -r requirements/base.in
@@ -156,7 +156,7 @@ exceptiongroup==1.2.2
     # via pytest
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==33.1.0
+faker==33.3.0
     # via factory-boy
 freezegun==1.5.1
     # via -r requirements/test.in
@@ -174,7 +174,7 @@ isort==5.13.2
     # via pylint
 itypes==1.2.0
     # via coreapi
-jinja2==3.1.4
+jinja2==3.1.5
     # via
     #   coreschema
     #   diff-cover
@@ -212,7 +212,7 @@ pluggy==1.5.0
     # via
     #   diff-cover
     #   pytest
-psutil==6.1.0
+psutil==6.1.1
     # via edx-django-utils
 pycodestyle==2.12.1
     # via -r requirements/test.in
@@ -220,7 +220,7 @@ pycparser==2.22
     # via cffi
 pydocstyle==6.3.0
     # via -r requirements/test.in
-pygments==2.18.0
+pygments==2.19.1
     # via diff-cover
 pyjwt[crypto]==2.9.0
     # via
