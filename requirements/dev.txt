@@ -16,9 +16,9 @@ backports-zoneinfo==0.2.1 ; python_version < "3.9"
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.82
+boto3==1.35.95
     # via -r requirements/base.in
-botocore==1.35.82
+botocore==1.35.95
     # via
     #   boto3
     #   s3transfer
@@ -28,9 +28,9 @@ cffi==1.17.1
     # via
     #   cryptography
     #   pynacl
-charset-normalizer==3.4.0
+charset-normalizer==3.4.1
     # via requests
-click==8.1.7
+click==8.1.8
     # via edx-django-utils
 coreapi==2.3.3
     # via -r requirements/base.in
@@ -121,7 +121,7 @@ edx-drf-extensions==10.5.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.7.6
+edx-enterprise-data==9.7.7
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in
@@ -139,7 +139,7 @@ edx-rest-api-client==6.0.0
     #   edx-enterprise-data
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==33.1.0
+faker==33.3.0
     # via factory-boy
 html5lib==1.1
     # via -r requirements/base.in
@@ -151,7 +151,7 @@ inflection==0.5.1
     # via drf-yasg
 itypes==1.2.0
     # via coreapi
-jinja2==3.1.4
+jinja2==3.1.5
     # via coreschema
 jmespath==1.0.1
     # via
@@ -179,7 +179,7 @@ pandas==2.0.3
     # via edx-enterprise-data
 pbr==6.1.0
     # via stevedore
-psutil==6.1.0
+psutil==6.1.1
     # via edx-django-utils
 pycparser==2.22
     # via cffi
