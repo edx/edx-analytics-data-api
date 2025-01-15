@@ -18,9 +18,9 @@ backports-zoneinfo==0.2.1 ; python_version < "3.9"
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.35.95
+boto3==1.35.99
     # via -r requirements/base.in
-botocore==1.35.95
+botocore==1.35.99
     # via
     #   boto3
     #   s3transfer
@@ -136,7 +136,7 @@ edx-drf-extensions==10.5.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.7.7
+edx-enterprise-data==9.7.8
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in
@@ -156,7 +156,7 @@ exceptiongroup==1.2.2
     # via pytest
 factory-boy==3.3.1
     # via edx-enterprise-data
-faker==33.3.0
+faker==33.3.1
     # via factory-boy
 freezegun==1.5.1
     # via -r requirements/test.in
@@ -268,7 +268,7 @@ requests==2.32.3
     #   edx-enterprise-data
     #   edx-rest-api-client
     #   responses
-responses==0.25.3
+responses==0.25.6
     # via -r requirements/test.in
 rules==3.5
     # via edx-enterprise-data
