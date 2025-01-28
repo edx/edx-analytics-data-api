@@ -18,9 +18,9 @@ backports-zoneinfo==0.2.1 ; python_version < "3.9"
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.36.6
+boto3==1.36.7
     # via -r requirements/base.in
-botocore==1.36.6
+botocore==1.36.7
     # via
     #   boto3
     #   s3transfer
@@ -136,7 +136,7 @@ edx-drf-extensions==10.5.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.7.10
+edx-enterprise-data==9.7.11
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in
