@@ -16,13 +16,13 @@ backports-zoneinfo==0.2.1 ; python_version < "3.9"
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.36.7
+boto3==1.36.12
     # via -r requirements/base.in
-botocore==1.36.7
+botocore==1.36.12
     # via
     #   boto3
     #   s3transfer
-certifi==2024.12.14
+certifi==2025.1.31
     # via requests
 cffi==1.17.1
     # via
@@ -137,9 +137,9 @@ edx-rest-api-client==6.0.0
     # via
     #   -r requirements/base.in
     #   edx-enterprise-data
-factory-boy==3.3.1
+factory-boy==3.3.3
     # via edx-enterprise-data
-faker==35.0.0
+faker==35.2.0
     # via factory-boy
 html5lib==1.1
     # via -r requirements/base.in
@@ -165,7 +165,7 @@ mysql-connector-python==9.0.0
     # via edx-enterprise-data
 mysqlclient==2.2.7
     # via -r requirements/dev.in
-newrelic==10.4.0
+newrelic==10.5.0
     # via edx-django-utils
 numpy==1.24.4
     # via
@@ -177,7 +177,7 @@ packaging==24.2
     # via drf-yasg
 pandas==2.0.3
     # via edx-enterprise-data
-pbr==6.1.0
+pbr==6.1.1
     # via stevedore
 psutil==6.1.1
     # via edx-django-utils
@@ -201,7 +201,7 @@ python-dateutil==2.9.0.post0
     #   pandas
 python-memcached==1.62
     # via -r requirements/base.in
-pytz==2024.2
+pytz==2025.1
     # via
     #   drf-yasg
     #   pandas
