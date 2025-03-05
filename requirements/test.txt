@@ -18,9 +18,9 @@ backports-zoneinfo==0.2.1 ; python_version < "3.9"
     #   djangorestframework
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.37.0
+boto3==1.37.5
     # via -r requirements/base.in
-botocore==1.37.0
+botocore==1.37.5
     # via
     #   boto3
     #   s3transfer
@@ -44,7 +44,7 @@ coverage[toml]==7.6.1
     # via
     #   -r requirements/test.in
     #   pytest-cov
-cryptography==44.0.1
+cryptography==44.0.2
     # via
     #   django-fernet-fields-v2
     #   pyjwt
@@ -125,7 +125,7 @@ edx-ccx-keys==2.0.2
     # via -r requirements/base.in
 edx-django-release-util==1.4.0
     # via -r requirements/base.in
-edx-django-utils==7.1.0
+edx-django-utils==7.2.0
     # via
     #   -r requirements/base.in
     #   edx-drf-extensions
@@ -235,7 +235,7 @@ pymongo==4.10.1
     # via edx-opaque-keys
 pynacl==1.5.0
     # via edx-django-utils
-pytest==8.3.4
+pytest==8.3.5
     # via
     #   pytest-cov
     #   pytest-django
@@ -272,7 +272,7 @@ responses==0.25.6
     # via -r requirements/test.in
 rules==3.5
     # via edx-enterprise-data
-s3transfer==0.11.2
+s3transfer==0.11.3
     # via boto3
 semantic-version==2.10.0
     # via edx-drf-extensions
