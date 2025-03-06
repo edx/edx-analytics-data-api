@@ -1,9 +1,11 @@
 [run]
+branch = True
+data_file = .coverage
+relative_files = True
+source = analyticsdataserver, analytics_data_api
 omit = analyticsdataserver/settings*
        *wsgi.py
 
-source = analyticsdataserver, analytics_data_api
-branch = True
 
 [report]
 # Regexes for lines to exclude from consideration
