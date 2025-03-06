@@ -10,7 +10,7 @@ wheel==0.45.1
 # The following packages are considered to be unsafe in a requirements file:
 pip==24.2
     # via
-    #   -c /Users/ilee/edx/edx-analytics-data-api/requirements/constraints.txt
+    #   -c /home/runner/work/edx-analytics-data-api/requirements/constraints.txt
     #   -r requirements/pip.in
 setuptools==75.8.2
     # via -r requirements/pip.in
