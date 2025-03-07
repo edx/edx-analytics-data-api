@@ -65,7 +65,7 @@ django==4.2.19
     #   edx-drf-extensions
     #   edx-enterprise-data
     #   edx-rbac
-django-cors-headers==4.7.0
+django-cors-headers==4.4.0
     # via -r requirements/base.in
 django-countries==7.6.1
     # via -r requirements/base.in
