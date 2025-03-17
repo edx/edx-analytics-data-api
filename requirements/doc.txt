@@ -21,9 +21,9 @@ beautifulsoup4==4.13.3
     # via pydata-sphinx-theme
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.37.11
+boto3==1.37.13
     # via -r requirements/base.in
-botocore==1.37.11
+botocore==1.37.13
     # via
     #   boto3
     #   s3transfer
@@ -130,10 +130,8 @@ edx-drf-extensions==10.5.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.9.2
-    # via
-    #   -c requirements/constraints.txt
-    #   -r requirements/base.in
+edx-enterprise-data==10.10.0
+    # via -r requirements/base.in
 edx-opaque-keys==2.11.0
     # via
     #   -r requirements/base.in
@@ -176,7 +174,7 @@ mysql-connector-python==9.2.0
     # via edx-enterprise-data
 newrelic==10.7.0
     # via edx-django-utils
-numpy==1.24.4
+numpy==2.2.4
     # via
     #   edx-enterprise-data
     #   pandas
@@ -187,7 +185,7 @@ packaging==24.2
     #   drf-yasg
     #   pydata-sphinx-theme
     #   sphinx
-pandas==2.0.3
+pandas==2.2.3
     # via edx-enterprise-data
 path==16.14.0
     # via

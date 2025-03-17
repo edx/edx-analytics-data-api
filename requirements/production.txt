@@ -11,9 +11,9 @@ asgiref==3.8.1
     #   django-countries
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.37.11
+boto3==1.37.13
     # via -r requirements/base.in
-botocore==1.37.11
+botocore==1.37.13
     # via
     #   boto3
     #   s3transfer
@@ -116,10 +116,8 @@ edx-drf-extensions==10.5.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==9.9.2
-    # via
-    #   -c requirements/constraints.txt
-    #   -r requirements/base.in
+edx-enterprise-data==10.10.0
+    # via -r requirements/base.in
 edx-opaque-keys==2.11.0
     # via
     #   -r requirements/base.in
@@ -168,7 +166,7 @@ newrelic==10.7.0
     # via
     #   -r requirements/production.in
     #   edx-django-utils
-numpy==1.24.4
+numpy==2.2.4
     # via
     #   edx-enterprise-data
     #   pandas
@@ -178,7 +176,7 @@ packaging==24.2
     # via
     #   drf-yasg
     #   gunicorn
-pandas==2.0.3
+pandas==2.2.3
     # via edx-enterprise-data
 path-py==8.2.1
     # via -r requirements/production.in
