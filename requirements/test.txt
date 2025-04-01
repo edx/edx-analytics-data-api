@@ -13,9 +13,9 @@ astroid==3.3.9
     # via pylint
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.37.14
+boto3==1.37.24
     # via -r requirements/base.in
-botocore==1.37.14
+botocore==1.37.24
     # via
     #   boto3
     #   s3transfer
@@ -35,7 +35,7 @@ coreapi==2.3.3
     # via -r requirements/base.in
 coreschema==0.0.4
     # via coreapi
-coverage[toml]==7.7.0
+coverage[toml]==7.8.0
     # via
     #   -r requirements/test.in
     #   pytest-cov
@@ -94,7 +94,7 @@ django-waffle==4.2.0
     # via
     #   edx-django-utils
     #   edx-drf-extensions
-djangorestframework==3.15.2
+djangorestframework==3.16.0
     # via
     #   -r requirements/base.in
     #   djangorestframework-csv
@@ -133,7 +133,7 @@ edx-drf-extensions==10.5.0
     #   edx-rbac
 edx-enterprise-data==10.10.1
     # via -r requirements/base.in
-edx-opaque-keys==2.11.0
+edx-opaque-keys==2.12.0
     # via
     #   -r requirements/base.in
     #   edx-ccx-keys
@@ -147,7 +147,7 @@ edx-rest-api-client==6.1.0
     #   edx-enterprise-data
 factory-boy==3.3.3
     # via edx-enterprise-data
-faker==37.0.0
+faker==37.1.0
     # via factory-boy
 freezegun==1.5.1
     # via -r requirements/test.in
@@ -157,7 +157,7 @@ idna==3.10
     # via requests
 inflection==0.5.1
     # via drf-yasg
-iniconfig==2.0.0
+iniconfig==2.1.0
     # via pytest
 isort==6.0.1
     # via pylint
@@ -179,7 +179,7 @@ mccabe==0.7.0
     # via pylint
 mysql-connector-python==9.2.0
     # via edx-enterprise-data
-newrelic==10.7.0
+newrelic==10.8.1
     # via edx-django-utils
 numpy==2.2.4
     # via
@@ -195,7 +195,7 @@ pandas==2.2.3
     # via edx-enterprise-data
 pbr==6.1.1
     # via stevedore
-platformdirs==4.3.6
+platformdirs==4.3.7
     # via pylint
 pluggy==1.5.0
     # via
@@ -203,7 +203,7 @@ pluggy==1.5.0
     #   pytest
 psutil==7.0.0
     # via edx-django-utils
-pycodestyle==2.12.1
+pycodestyle==2.13.0
     # via -r requirements/test.in
 pycparser==2.22
     # via cffi
@@ -216,7 +216,7 @@ pyjwt[crypto]==2.10.1
     #   drf-jwt
     #   edx-drf-extensions
     #   edx-rest-api-client
-pylint==3.3.5
+pylint==3.3.6
     # via -r requirements/test.in
 pymemcache==4.0.0
     # via -r requirements/base.in
@@ -228,7 +228,7 @@ pytest==8.3.5
     # via
     #   pytest-cov
     #   pytest-django
-pytest-cov==6.0.0
+pytest-cov==6.1.0
     # via -r requirements/test.in
 pytest-django==4.10.0
     # via -r requirements/test.in
@@ -239,7 +239,7 @@ python-dateutil==2.9.0.post0
     #   pandas
 python-memcached==1.62
     # via -r requirements/base.in
-pytz==2025.1
+pytz==2025.2
     # via
     #   -r requirements/test.in
     #   drf-yasg
@@ -283,11 +283,11 @@ tomlkit==0.13.2
     # via pylint
 tqdm==4.67.1
     # via -r requirements/base.in
-typing-extensions==4.12.2
+typing-extensions==4.13.0
     # via
     #   django-countries
     #   edx-opaque-keys
-tzdata==2025.1
+tzdata==2025.2
     # via
     #   faker
     #   pandas
