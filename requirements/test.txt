@@ -13,9 +13,9 @@ astroid==3.3.9
     # via pylint
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.37.24
+boto3==1.37.28
     # via -r requirements/base.in
-botocore==1.37.24
+botocore==1.37.28
     # via
     #   boto3
     #   s3transfer
@@ -126,12 +126,12 @@ edx-django-utils==7.2.0
     #   edx-drf-extensions
     #   edx-enterprise-data
     #   edx-rest-api-client
-edx-drf-extensions==10.5.0
+edx-drf-extensions==10.6.0
     # via
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==10.10.1
+edx-enterprise-data==10.11.0
     # via -r requirements/base.in
 edx-opaque-keys==2.12.0
     # via
@@ -228,9 +228,9 @@ pytest==8.3.5
     # via
     #   pytest-cov
     #   pytest-django
-pytest-cov==6.1.0
+pytest-cov==6.1.1
     # via -r requirements/test.in
-pytest-django==4.10.0
+pytest-django==4.11.1
     # via -r requirements/test.in
 python-dateutil==2.9.0.post0
     # via
@@ -283,7 +283,7 @@ tomlkit==0.13.2
     # via pylint
 tqdm==4.67.1
     # via -r requirements/base.in
-typing-extensions==4.13.0
+typing-extensions==4.13.1
     # via
     #   django-countries
     #   edx-opaque-keys
