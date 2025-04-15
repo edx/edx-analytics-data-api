@@ -152,7 +152,7 @@ markdown==3.8
     # via -r requirements/base.in
 markupsafe==3.0.2
     # via jinja2
-mysql-connector-python==9.2.0
+mysql-connector-python==9.3.0
     # via edx-enterprise-data
 newrelic==10.9.0
     # via edx-django-utils
