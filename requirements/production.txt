@@ -11,9 +11,9 @@ asgiref==3.8.1
     #   django-countries
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.37.34
+boto3==1.37.38
     # via -r requirements/base.in
-botocore==1.37.34
+botocore==1.37.38
     # via
     #   boto3
     #   s3transfer
@@ -134,9 +134,9 @@ factory-boy==3.3.3
     # via edx-enterprise-data
 faker==37.1.0
     # via factory-boy
-gevent==24.11.1
+gevent==25.4.1
     # via -r requirements/production.in
-greenlet==3.1.1
+greenlet==3.2.1
     # via gevent
 gunicorn==23.0.0
     # via -r requirements/production.in
@@ -158,7 +158,7 @@ markdown==3.8
     # via -r requirements/base.in
 markupsafe==3.0.2
     # via jinja2
-mysql-connector-python==9.2.0
+mysql-connector-python==9.3.0
     # via edx-enterprise-data
 mysqlclient==2.2.7
     # via -r requirements/production.in
@@ -166,13 +166,13 @@ newrelic==10.9.0
     # via
     #   -r requirements/production.in
     #   edx-django-utils
-numpy==2.2.4
+numpy==2.2.5
     # via
     #   edx-enterprise-data
     #   pandas
 ordered-set==4.1.0
     # via -r requirements/base.in
-packaging==24.2
+packaging==25.0
     # via
     #   drf-yasg
     #   gunicorn
@@ -220,7 +220,7 @@ requests==2.32.3
     #   edx-rest-api-client
 rules==3.5
     # via edx-enterprise-data
-s3transfer==0.11.4
+s3transfer==0.11.5
     # via boto3
 semantic-version==2.10.0
     # via edx-drf-extensions
