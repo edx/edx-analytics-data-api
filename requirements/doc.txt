@@ -21,9 +21,9 @@ beautifulsoup4==4.13.4
     # via pydata-sphinx-theme
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.38.4
+boto3==1.38.19
     # via -r requirements/base.in
-botocore==1.38.4
+botocore==1.38.19
     # via
     #   boto3
     #   s3transfer
@@ -33,19 +33,19 @@ cffi==1.17.1
     # via
     #   cryptography
     #   pynacl
-charset-normalizer==3.4.1
+charset-normalizer==3.4.2
     # via requests
-click==8.1.8
+click==8.2.0
     # via edx-django-utils
 coreapi==2.3.3
     # via -r requirements/base.in
 coreschema==0.0.4
     # via coreapi
-cryptography==44.0.2
+cryptography==45.0.2
     # via
     #   django-fernet-fields-v2
     #   pyjwt
-django==4.2.20
+django==4.2.21
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in
@@ -113,7 +113,7 @@ drf-jwt==1.19.2
     # via edx-drf-extensions
 drf-yasg==1.21.10
     # via edx-api-doc-tools
-edx-api-doc-tools==2.0.0
+edx-api-doc-tools==2.1.0
     # via -r requirements/base.in
 edx-ccx-keys==2.0.2
     # via -r requirements/base.in
@@ -130,7 +130,7 @@ edx-drf-extensions==10.6.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==10.15.0
+edx-enterprise-data==10.16.2
     # via -r requirements/base.in
 edx-opaque-keys==3.0.0
     # via
@@ -138,7 +138,7 @@ edx-opaque-keys==3.0.0
     #   edx-ccx-keys
     #   edx-drf-extensions
     #   edx-enterprise-data
-edx-rbac==1.10.0
+edx-rbac==2.1.0
     # via edx-enterprise-data
 edx-rest-api-client==6.2.0
     # via
@@ -146,7 +146,7 @@ edx-rest-api-client==6.2.0
     #   edx-enterprise-data
 factory-boy==3.3.3
     # via edx-enterprise-data
-faker==37.1.0
+faker==37.3.0
     # via factory-boy
 html5lib==1.1
     # via -r requirements/base.in
@@ -172,9 +172,9 @@ markupsafe==3.0.2
     # via jinja2
 mysql-connector-python==9.3.0
     # via edx-enterprise-data
-newrelic==10.10.0
+newrelic==10.12.0
     # via edx-django-utils
-numpy==2.2.5
+numpy==2.2.6
     # via
     #   edx-enterprise-data
     #   pandas
@@ -211,7 +211,7 @@ pyjwt[crypto]==2.10.1
     #   edx-rest-api-client
 pymemcache==4.0.0
     # via -r requirements/base.in
-pymongo==4.12.0
+pymongo==4.13.0
     # via edx-opaque-keys
 pynacl==1.5.0
     # via edx-django-utils
@@ -251,7 +251,7 @@ six==1.17.0
     #   edx-rbac
     #   html5lib
     #   python-dateutil
-snowballstemmer==2.2.0
+snowballstemmer==3.0.1
     # via sphinx
 soupsieve==2.7
     # via beautifulsoup4
