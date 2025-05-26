@@ -373,11 +373,21 @@ ANALYTICS_API_SERVICE_USERNAMES = [
 ]
 
 # settings for report downloads
-DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+STORAGES = {
+    'default': {
+        'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
+
 MEDIA_ROOT = normpath(join(SITE_ROOT, 'static', 'reports'))
 MEDIA_URL = 'http://localhost:8100/static/reports/'
 COURSE_REPORT_FILE_LOCATION_TEMPLATE = '{course_id}_{report_name}.csv'
 ENABLED_REPORT_IDENTIFIERS = ('problem_response',)
+# For backwards compatibility of Report Download backend
+DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 REPORT_DOWNLOAD_BACKEND = {
     DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage',
     MEDIA_ROOT: MEDIA_ROOT,

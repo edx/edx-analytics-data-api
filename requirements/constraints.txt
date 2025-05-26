@@ -9,7 +9,7 @@
 # linking to it here is good.
 
 # TODO: Many pinned dependencies should be unpinned and/or moved to this constraints file.
-django<4.3
+django<5.3
 
 # django-storages version 1.9 drops support for boto storage backend.
 # pinning before django upgrade, will unpin after that
@@ -29,10 +29,6 @@ path<16.15.0
 
 # dnspython 2.7.0 Requires-Python >=3.9
 dnspython<2.7.0
-
-# backports-zoneinfo comes by-default in newer versions of python
-# it gives error while building wheel with python>=3.9
-backports.zoneinfo ; python_version < "3.9"
 
 # Cause: https://github.com/openedx/edx-lint/issues/458
 # This can be unpinned once https://github.com/openedx/edx-lint/issues/459 has been resolved.

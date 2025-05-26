@@ -20,7 +20,9 @@ class CourseActivityWeekly(BaseCourseModel):
 
     class Meta(BaseCourseModel.Meta):
         db_table = 'course_activity'
-        index_together = [['course_id', 'activity_type']]
+        indexes = [
+            models.Index(fields=['course_id', 'activity_type']),
+        ]
         get_latest_by = 'interval_end'
 
     interval_start = models.DateTimeField()
@@ -41,7 +43,9 @@ class BaseCourseEnrollment(BaseCourseModel):
     class Meta(BaseCourseModel.Meta):
         abstract = True
         get_latest_by = 'date'
-        index_together = [('course_id', 'date',)]
+        indexes = [
+            models.Index(fields=['course_id', 'date']),
+        ]
 
 
 class CourseEnrollmentDaily(BaseCourseEnrollment):
