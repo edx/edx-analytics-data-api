@@ -40,8 +40,6 @@ LMS_BASE_URL = 'http://lms-host'
 
 LMS_USER_ACCOUNT_BASE_URL = 'http://lms-host'
 
-# Default the django-storage settings so we can test easily
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 AWS_ACCESS_KEY_ID = 'xxxxx'
 AWS_SECRET_ACCESS_KEY = 'xxxxx'
 AWS_STORAGE_BUCKET_NAME = 'fake-bucket'
