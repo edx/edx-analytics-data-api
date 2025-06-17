@@ -11,13 +11,13 @@ asgiref==3.8.1
     #   django-countries
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.38.19
+boto3==1.38.37
     # via -r requirements/base.in
-botocore==1.38.19
+botocore==1.38.37
     # via
     #   boto3
     #   s3transfer
-certifi==2025.4.26
+certifi==2025.6.15
     # via requests
 cffi==1.17.1
     # via
@@ -25,17 +25,17 @@ cffi==1.17.1
     #   pynacl
 charset-normalizer==3.4.2
     # via requests
-click==8.2.0
+click==8.2.1
     # via edx-django-utils
 coreapi==2.3.3
     # via -r requirements/base.in
 coreschema==0.0.4
     # via coreapi
-cryptography==45.0.2
+cryptography==45.0.4
     # via
     #   django-fernet-fields-v2
     #   pyjwt
-django==4.2.21
+django==4.2.23
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in
@@ -75,7 +75,7 @@ django-storages==1.10.1
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/base.in
-django-waffle==4.2.0
+django-waffle==5.0.0
     # via
     #   edx-django-utils
     #   edx-drf-extensions
@@ -105,7 +105,7 @@ edx-ccx-keys==2.0.2
     # via -r requirements/base.in
 edx-django-release-util==1.5.0
     # via -r requirements/base.in
-edx-django-utils==7.4.0
+edx-django-utils==8.0.0
     # via
     #   -r requirements/base.in
     #   edx-drf-extensions
@@ -116,7 +116,7 @@ edx-drf-extensions==10.6.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==10.16.2
+edx-enterprise-data==10.16.7
     # via -r requirements/base.in
 edx-opaque-keys==3.0.0
     # via
@@ -132,11 +132,11 @@ edx-rest-api-client==6.2.0
     #   edx-enterprise-data
 factory-boy==3.3.3
     # via edx-enterprise-data
-faker==37.3.0
+faker==37.4.0
     # via factory-boy
 gevent==25.5.1
     # via -r requirements/production.in
-greenlet==3.2.2
+greenlet==3.2.3
     # via gevent
 gunicorn==23.0.0
     # via -r requirements/production.in
@@ -162,11 +162,9 @@ mysql-connector-python==9.3.0
     # via edx-enterprise-data
 mysqlclient==2.2.7
     # via -r requirements/production.in
-newrelic==10.12.0
-    # via
-    #   -r requirements/production.in
-    #   edx-django-utils
-numpy==2.2.6
+newrelic==10.13.0
+    # via -r requirements/production.in
+numpy==2.3.0
     # via
     #   edx-enterprise-data
     #   pandas
@@ -176,7 +174,7 @@ packaging==25.0
     # via
     #   drf-yasg
     #   gunicorn
-pandas==2.2.3
+pandas==2.3.0
     # via edx-enterprise-data
 path-py==8.2.1
     # via -r requirements/production.in
@@ -193,7 +191,7 @@ pyjwt[crypto]==2.10.1
     #   edx-rest-api-client
 pymemcache==4.0.0
     # via -r requirements/base.in
-pymongo==4.13.0
+pymongo==4.13.2
     # via edx-opaque-keys
 pynacl==1.5.0
     # via edx-django-utils
@@ -212,7 +210,7 @@ pyyaml==6.0.2
     #   -r requirements/production.in
     #   drf-yasg
     #   edx-django-release-util
-requests==2.32.3
+requests==2.32.4
     # via
     #   coreapi
     #   edx-drf-extensions
@@ -220,7 +218,7 @@ requests==2.32.3
     #   edx-rest-api-client
 rules==3.5
     # via edx-enterprise-data
-s3transfer==0.12.0
+s3transfer==0.13.0
     # via boto3
 semantic-version==2.10.0
     # via edx-drf-extensions
@@ -239,7 +237,7 @@ stevedore==5.4.1
     #   edx-opaque-keys
 tqdm==4.67.1
     # via -r requirements/base.in
-typing-extensions==4.13.2
+typing-extensions==4.14.0
     # via
     #   django-countries
     #   edx-opaque-keys
@@ -247,7 +245,7 @@ tzdata==2025.2
     # via
     #   faker
     #   pandas
-uritemplate==4.1.1
+uritemplate==4.2.0
     # via
     #   coreapi
     #   drf-yasg
