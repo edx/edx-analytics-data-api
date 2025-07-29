@@ -11,9 +11,9 @@ asgiref==3.9.1
     #   django-countries
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.39.4
+boto3==1.39.14
     # via -r requirements/base.in
-botocore==1.39.4
+botocore==1.39.14
     # via
     #   boto3
     #   s3transfer
@@ -116,7 +116,7 @@ edx-drf-extensions==10.6.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==10.17.1
+edx-enterprise-data==10.18.0
     # via -r requirements/base.in
 edx-opaque-keys==3.0.0
     # via
@@ -132,7 +132,7 @@ edx-rest-api-client==6.2.0
     #   edx-enterprise-data
 factory-boy==3.3.3
     # via edx-enterprise-data
-faker==37.4.0
+faker==37.4.2
     # via factory-boy
 gevent==25.5.1
     # via -r requirements/production.in
@@ -158,11 +158,11 @@ markdown==3.8.2
     # via -r requirements/base.in
 markupsafe==3.0.2
     # via jinja2
-mysql-connector-python==9.3.0
+mysql-connector-python==9.4.0
     # via edx-enterprise-data
 mysqlclient==2.2.7
     # via -r requirements/production.in
-newrelic==10.14.0
+newrelic==10.15.0
     # via -r requirements/production.in
 ordered-set==4.1.0
     # via -r requirements/base.in
@@ -208,7 +208,7 @@ requests==2.32.4
     #   edx-rest-api-client
 rules==3.5
     # via edx-enterprise-data
-s3transfer==0.13.0
+s3transfer==0.13.1
     # via boto3
 semantic-version==2.10.0
     # via edx-drf-extensions
@@ -245,7 +245,7 @@ urllib3==1.26.20
     #   requests
 webencodings==0.5.1
     # via html5lib
-zope-event==5.1
+zope-event==5.1.1
     # via gevent
 zope-interface==7.2
     # via gevent
