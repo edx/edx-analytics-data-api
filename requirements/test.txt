@@ -13,13 +13,13 @@ astroid==3.3.11
     # via pylint
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.39.15
+boto3==1.40.7
     # via -r requirements/base.in
-botocore==1.39.15
+botocore==1.40.7
     # via
     #   boto3
     #   s3transfer
-certifi==2025.7.14
+certifi==2025.8.3
     # via requests
 cffi==1.17.1
     # via
@@ -27,7 +27,7 @@ cffi==1.17.1
     #   pynacl
 chardet==5.2.0
     # via diff-cover
-charset-normalizer==3.4.2
+charset-normalizer==3.4.3
     # via requests
 click==8.2.1
     # via edx-django-utils
@@ -35,11 +35,11 @@ coreapi==2.3.3
     # via -r requirements/base.in
 coreschema==0.0.4
     # via coreapi
-coverage[toml]==7.10.1
+coverage[toml]==7.10.3
     # via
     #   -r requirements/test.in
     #   pytest-cov
-cryptography==45.0.5
+cryptography==45.0.6
     # via
     #   django-fernet-fields-v2
     #   pyjwt
@@ -94,7 +94,7 @@ django-waffle==5.0.0
     # via
     #   edx-django-utils
     #   edx-drf-extensions
-djangorestframework==3.16.0
+djangorestframework==3.16.1
     # via
     #   -r requirements/base.in
     #   djangorestframework-csv
@@ -131,7 +131,7 @@ edx-drf-extensions==10.6.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==10.18.1
+edx-enterprise-data==10.18.2
     # via -r requirements/base.in
 edx-opaque-keys==3.0.0
     # via
@@ -147,9 +147,9 @@ edx-rest-api-client==6.2.0
     #   edx-enterprise-data
 factory-boy==3.3.3
     # via edx-enterprise-data
-faker==37.4.2
+faker==37.5.3
     # via factory-boy
-freezegun==1.5.3
+freezegun==1.5.5
     # via -r requirements/test.in
 html5lib==1.1
     # via -r requirements/base.in
@@ -211,11 +211,11 @@ pyjwt[crypto]==2.10.1
     #   drf-jwt
     #   edx-drf-extensions
     #   edx-rest-api-client
-pylint==3.3.7
+pylint==3.3.8
     # via -r requirements/test.in
 pymemcache==4.0.0
     # via -r requirements/base.in
-pymongo==4.13.2
+pymongo==4.14.0
     # via edx-opaque-keys
 pynacl==1.5.0
     # via edx-django-utils
@@ -249,7 +249,7 @@ requests==2.32.4
     #   edx-enterprise-data
     #   edx-rest-api-client
     #   responses
-responses==0.25.7
+responses==0.25.8
     # via -r requirements/test.in
 rules==3.5
     # via edx-enterprise-data
