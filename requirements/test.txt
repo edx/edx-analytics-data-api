@@ -13,9 +13,9 @@ astroid==3.3.11
     # via pylint
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.40.12
+boto3==1.40.18
     # via -r requirements/base.in
-botocore==1.40.12
+botocore==1.40.18
     # via
     #   boto3
     #   s3transfer
@@ -35,7 +35,7 @@ coreapi==2.3.3
     # via -r requirements/base.in
 coreschema==0.0.4
     # via coreapi
-coverage[toml]==7.10.4
+coverage[toml]==7.10.5
     # via
     #   -r requirements/test.in
     #   pytest-cov
@@ -131,7 +131,7 @@ edx-drf-extensions==10.6.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==10.20.1
+edx-enterprise-data==10.21.0
     # via -r requirements/base.in
 edx-opaque-keys==3.0.0
     # via
@@ -147,7 +147,7 @@ edx-rest-api-client==6.2.0
     #   edx-enterprise-data
 factory-boy==3.3.3
     # via edx-enterprise-data
-faker==37.5.3
+faker==37.6.0
     # via factory-boy
 freezegun==1.5.5
     # via -r requirements/test.in
@@ -185,9 +185,7 @@ packaging==25.0
     # via
     #   drf-yasg
     #   pytest
-pbr==7.0.0
-    # via stevedore
-platformdirs==4.3.8
+platformdirs==4.4.0
     # via pylint
 pluggy==1.6.0
     # via
@@ -215,7 +213,7 @@ pylint==3.3.8
     # via -r requirements/test.in
 pymemcache==4.0.0
     # via -r requirements/base.in
-pymongo==4.14.0
+pymongo==4.14.1
     # via edx-opaque-keys
 pynacl==1.5.0
     # via edx-django-utils
@@ -268,7 +266,7 @@ snowballstemmer==3.0.1
     # via pydocstyle
 sqlparse==0.5.3
     # via django
-stevedore==5.4.1
+stevedore==5.5.0
     # via
     #   edx-django-utils
     #   edx-opaque-keys
@@ -276,7 +274,7 @@ tomlkit==0.13.3
     # via pylint
 tqdm==4.67.1
     # via -r requirements/base.in
-typing-extensions==4.14.1
+typing-extensions==4.15.0
     # via
     #   django-countries
     #   edx-opaque-keys
