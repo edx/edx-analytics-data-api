@@ -21,9 +21,9 @@ beautifulsoup4==4.13.5
     # via pydata-sphinx-theme
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.40.18
+boto3==1.40.21
     # via -r requirements/base.in
-botocore==1.40.18
+botocore==1.40.21
     # via
     #   boto3
     #   s3transfer
@@ -41,7 +41,7 @@ coreapi==2.3.3
     # via -r requirements/base.in
 coreschema==0.0.4
     # via coreapi
-cryptography==45.0.6
+cryptography==45.0.7
     # via
     #   django-fernet-fields-v2
     #   pyjwt
@@ -239,7 +239,7 @@ six==1.17.0
     #   python-dateutil
 snowballstemmer==3.0.1
     # via sphinx
-soupsieve==2.7
+soupsieve==2.8
     # via beautifulsoup4
 sphinx==8.2.3
     # via
