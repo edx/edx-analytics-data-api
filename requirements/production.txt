@@ -11,9 +11,9 @@ asgiref==3.9.1
     #   django-countries
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.40.26
+boto3==1.40.31
     # via -r requirements/base.in
-botocore==1.40.26
+botocore==1.40.31
     # via
     #   boto3
     #   s3transfer
@@ -116,7 +116,7 @@ edx-drf-extensions==10.6.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==10.21.0
+edx-enterprise-data==10.21.3
     # via -r requirements/base.in
 edx-opaque-keys==3.0.0
     # via
@@ -132,7 +132,7 @@ edx-rest-api-client==6.2.0
     #   edx-enterprise-data
 factory-boy==3.3.3
     # via edx-enterprise-data
-faker==37.6.0
+faker==37.8.0
     # via factory-boy
 gevent==25.8.2
     # via -r requirements/production.in
@@ -183,9 +183,9 @@ pyjwt[crypto]==2.10.1
     #   edx-rest-api-client
 pymemcache==4.0.0
     # via -r requirements/base.in
-pymongo==4.14.1
+pymongo==4.15.0
     # via edx-opaque-keys
-pynacl==1.5.0
+pynacl==1.6.0
     # via edx-django-utils
 python-dateutil==2.9.0.post0
     # via botocore
@@ -206,7 +206,7 @@ requests==2.32.5
     #   edx-rest-api-client
 rules==3.5
     # via edx-enterprise-data
-s3transfer==0.13.1
+s3transfer==0.14.0
     # via boto3
 semantic-version==2.10.0
     # via edx-drf-extensions
@@ -243,9 +243,9 @@ urllib3==1.26.20
     #   requests
 webencodings==0.5.1
     # via html5lib
-zope-event==5.1.1
+zope-event==6.0
     # via gevent
-zope-interface==7.2
+zope-interface==8.0
     # via gevent
 
 # The following packages are considered to be unsafe in a requirements file:
