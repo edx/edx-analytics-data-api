@@ -11,9 +11,9 @@ asgiref==3.9.1
     #   django-countries
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.40.31
+boto3==1.40.32
     # via -r requirements/base.in
-botocore==1.40.31
+botocore==1.40.32
     # via
     #   boto3
     #   s3transfer
@@ -31,7 +31,7 @@ coreapi==2.3.3
     # via -r requirements/base.in
 coreschema==0.0.4
     # via coreapi
-cryptography==45.0.7
+cryptography==46.0.1
     # via
     #   django-fernet-fields-v2
     #   pyjwt
@@ -116,7 +116,7 @@ edx-drf-extensions==10.6.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==10.21.3
+edx-enterprise-data==10.21.4
     # via -r requirements/base.in
 edx-opaque-keys==3.0.0
     # via
@@ -169,7 +169,7 @@ pyjwt[crypto]==2.10.1
     #   edx-rest-api-client
 pymemcache==4.0.0
     # via -r requirements/base.in
-pymongo==4.15.0
+pymongo==4.15.1
     # via edx-opaque-keys
 pynacl==1.6.0
     # via edx-django-utils
