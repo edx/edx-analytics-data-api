@@ -4,16 +4,16 @@
 #
 #    pip-compile --cert=None --client-cert=None --index-url=None --output-file=requirements/base.txt --pip-args=None requirements/base.in
 #
-asgiref==3.9.1
+asgiref==3.9.2
     # via
     #   django
     #   django-cors-headers
     #   django-countries
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.40.34
+boto3==1.40.36
     # via -r requirements/base.in
-botocore==1.40.34
+botocore==1.40.36
     # via
     #   boto3
     #   s3transfer
