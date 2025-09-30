@@ -11,9 +11,9 @@ asgiref==3.9.2
     #   django-countries
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.40.36
+boto3==1.40.41
     # via -r requirements/base.in
-botocore==1.40.36
+botocore==1.40.41
     # via
     #   boto3
     #   s3transfer
@@ -97,7 +97,7 @@ dnspython==2.6.1
     #   pymongo
 drf-jwt==1.19.2
     # via edx-drf-extensions
-drf-yasg==1.21.10
+drf-yasg==1.21.11
     # via edx-api-doc-tools
 edx-api-doc-tools==2.1.0
     # via -r requirements/base.in
@@ -105,7 +105,7 @@ edx-ccx-keys==2.0.2
     # via -r requirements/base.in
 edx-django-release-util==1.5.0
     # via -r requirements/base.in
-edx-django-utils==8.0.0
+edx-django-utils==8.0.1
     # via
     #   -r requirements/base.in
     #   edx-drf-extensions
@@ -116,7 +116,7 @@ edx-drf-extensions==10.6.0
     #   -r requirements/base.in
     #   edx-enterprise-data
     #   edx-rbac
-edx-enterprise-data==10.21.6
+edx-enterprise-data==10.21.7
     # via -r requirements/base.in
 edx-opaque-keys==3.0.0
     # via
@@ -150,7 +150,7 @@ jmespath==1.0.1
     #   botocore
 markdown==3.9
     # via -r requirements/base.in
-markupsafe==3.0.2
+markupsafe==3.0.3
     # via jinja2
 mysql-connector-python==9.4.0
     # via edx-enterprise-data
@@ -179,7 +179,7 @@ python-memcached==1.62
     # via -r requirements/base.in
 pytz==2025.2
     # via drf-yasg
-pyyaml==6.0.2
+pyyaml==6.0.3
     # via
     #   drf-yasg
     #   edx-django-release-util
