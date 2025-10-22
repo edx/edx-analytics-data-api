@@ -37,3 +37,6 @@ backports.zoneinfo ; python_version < "3.9"
 # Cause: https://github.com/openedx/edx-lint/issues/458
 # This can be unpinned once https://github.com/openedx/edx-lint/issues/459 has been resolved.
 pip<24.3
+
+# https://2u-internal.atlassian.net/browse/ENT-11087
+pylint==3.3.8
