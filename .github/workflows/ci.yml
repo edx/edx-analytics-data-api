@@ -17,7 +17,7 @@ jobs:
         os:
           - ubuntu-latest
         python-version:
-          - 3.12
+          - 3.11
         targets: [ 'quality','main.test','docs' ]
 
     steps:
@@ -40,7 +40,7 @@ jobs:
         && export TOXENV=django42 && make test.requirements tox.requirements ${{ matrix.targets }}"
 
     - name: Run Coverage
-      if: matrix.python-version == '3.12' && matrix.targets=='main.test'
+      if: matrix.python-version == '3.11' && matrix.targets=='main.test'
       uses: py-cov-action/python-coverage-comment-action@v3
       with:
         GITHUB_TOKEN: ${{ github.token }}
