@@ -13,9 +13,9 @@ astroid==3.3.11
     # via pylint
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.40.72
+boto3==1.40.75
     # via -r requirements/base.in
-botocore==1.40.72
+botocore==1.40.75
     # via
     #   boto3
     #   s3transfer
@@ -29,13 +29,13 @@ chardet==5.2.0
     # via diff-cover
 charset-normalizer==3.4.4
     # via requests
-click==8.3.0
+click==8.3.1
     # via edx-django-utils
 coreapi==2.3.3
     # via -r requirements/base.in
 coreschema==0.0.4
     # via coreapi
-coverage[toml]==7.11.3
+coverage[toml]==7.12.0
     # via
     #   -r requirements/test.in
     #   pytest-cov
@@ -70,7 +70,7 @@ dill==0.4.0
     #   edx-rbac
 django-cors-headers==4.9.0
     # via -r requirements/base.in
-django-countries==8.1.0
+django-countries==8.1.1
     # via -r requirements/base.in
 django-crum==0.7.9
     # via
