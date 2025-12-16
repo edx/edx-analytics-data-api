@@ -21,9 +21,9 @@ beautifulsoup4==4.14.3
     # via pydata-sphinx-theme
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.42.4
+boto3==1.42.10
     # via -r requirements/base.in
-botocore==1.42.4
+botocore==1.42.10
     # via
     #   boto3
     #   s3transfer
@@ -222,7 +222,7 @@ requests==2.32.5
     #   edx-enterprise-data
     #   edx-rest-api-client
     #   sphinx
-roman-numerals==3.1.0
+roman-numerals==4.0.0
     # via sphinx
 rules==3.5
     # via edx-enterprise-data
@@ -274,7 +274,7 @@ typing-extensions==4.15.0
     #   django-countries
     #   edx-opaque-keys
     #   pydata-sphinx-theme
-tzdata==2025.2
+tzdata==2025.3
     # via faker
 uritemplate==4.2.0
     # via
