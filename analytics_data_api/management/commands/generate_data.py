@@ -239,7 +239,7 @@ def generate_learner_engagement_data(course_id, username, start_date, end_date, 
             num_events = random.randint(0, max_value)
             if num_events:
                 for _ in range(num_events):
-                    count = random.randint(0, max_value / 20)
+                    count = random.randint(0, max_value // 20)
                     entity_type = metric.split('_', 1)[0]
                     event = metric.split('_', 1)[1]
                     entity_id = f'an-id-{entity_type}-{event}'
