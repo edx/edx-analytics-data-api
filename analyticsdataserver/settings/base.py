@@ -330,8 +330,8 @@ REST_FRAMEWORK = {
         'edx_rest_framework_extensions.auth.jwt.authentication.JwtAuthentication',
     ),
 
-    # TODO: Move to OpenAPI https://www.django-rest-framework.org/community/3.10-announcement/#continuing-to-use-coreapi
-    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    # Using OpenAPI schema generation (replaces deprecated coreapi)
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.openapi.AutoSchema',
 
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',

@@ -5,7 +5,6 @@
 edx-api-doc-tools
 boto                                # MIT
 boto3
-coreapi
 Django                              # BSD License
 django-countries                    # MIT
 python-memcached                    # Python Software Foundation License v2
