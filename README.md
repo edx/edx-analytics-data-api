@@ -30,7 +30,7 @@
 | analytics\_data\_api/tests/test\_utils.py                                             |       86 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/throttles.py                                                     |       13 |        0 |        2 |        0 |    100% |           |
 | analytics\_data\_api/urls.py                                                          |        5 |        0 |        0 |        0 |    100% |           |
-| analytics\_data\_api/utils.py                                                         |       83 |       14 |       12 |        1 |     84% |23-25, 86-88, 177->179, 210-221, 229 |
+| analytics\_data\_api/utils.py                                                         |       83 |       14 |       12 |        1 |     84% |23-25, 86-88, 177-\>179, 210-221, 229 |
 | analytics\_data\_api/v0/\_\_init\_\_.py                                               |        0 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/v0/apps.py                                                       |        3 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/v0/exceptions.py                                                 |       28 |        2 |        0 |        0 |     93% |     20-21 |
@@ -58,7 +58,7 @@
 | analytics\_data\_api/v0/urls/videos.py                                                |        8 |        0 |        2 |        0 |    100% |           |
 | analytics\_data\_api/v0/views/\_\_init\_\_.py                                         |       57 |        1 |        6 |        0 |     98% |       146 |
 | analytics\_data\_api/v0/views/course\_summaries.py                                    |      116 |        0 |       44 |        0 |    100% |           |
-| analytics\_data\_api/v0/views/courses.py                                              |      268 |        4 |       58 |        5 |     97% |133->136, 275->278, 676-679, 688, 702->692 |
+| analytics\_data\_api/v0/views/courses.py                                              |      268 |        4 |       58 |        5 |     97% |133-\>136, 275-\>278, 676-679, 688, 702-\>692 |
 | analytics\_data\_api/v0/views/learners.py                                             |       37 |        0 |        4 |        0 |    100% |           |
 | analytics\_data\_api/v0/views/problems.py                                             |       65 |        1 |       18 |        1 |     98% |        88 |
 | analytics\_data\_api/v0/views/programs.py                                             |       21 |        0 |        0 |        0 |    100% |           |
@@ -66,7 +66,7 @@
 | analytics\_data\_api/v0/views/videos.py                                               |       11 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/v1/\_\_init\_\_.py                                               |        0 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/v1/urls.py                                                       |       11 |        0 |        2 |        0 |    100% |           |
-|                                                                             **TOTAL** | **3022** |   **63** |  **384** |   **11** | **98%** |           |
+| **TOTAL**                                                                             | **3022** |   **63** |  **384** |   **11** | **98%** |           |
 
 
 ## Setup coverage badge
