@@ -9,28 +9,39 @@ asgiref==3.11.1
     #   django
     #   django-cors-headers
     #   django-countries
+asn1crypto==1.5.1
+    # via snowflake-connector-python
 boto==2.49.0
     # via -r requirements/base.in
-boto3==1.42.90
-    # via -r requirements/base.in
-botocore==1.42.90
+boto3==1.42.97
+    # via
+    #   -r requirements/base.in
+    #   snowflake-connector-python
+botocore==1.42.97
     # via
     #   boto3
     #   s3transfer
-certifi==2026.2.25
-    # via requests
+    #   snowflake-connector-python
+certifi==2026.4.22
+    # via
+    #   requests
+    #   snowflake-connector-python
 cffi==2.0.0
     # via
     #   cryptography
     #   pynacl
 charset-normalizer==3.4.7
-    # via requests
-click==8.3.2
+    # via
+    #   requests
+    #   snowflake-connector-python
+click==8.3.3
     # via edx-django-utils
-cryptography==46.0.7
+cryptography==47.0.0
     # via
     #   django-fernet-fields-v2
     #   pyjwt
+    #   pyopenssl
+    #   snowflake-connector-python
 django==4.2.30
     # via
     #   -c requirements/constraints.txt
@@ -128,12 +139,16 @@ edx-rest-api-client==7.0.0
     #   edx-enterprise-data
 factory-boy==3.3.3
     # via edx-enterprise-data
-faker==40.13.0
+faker==40.15.0
     # via factory-boy
+filelock==3.29.0
+    # via snowflake-connector-python
 html5lib==1.1
     # via -r requirements/base.in
-idna==3.11
-    # via requests
+idna==3.13
+    # via
+    #   requests
+    #   snowflake-connector-python
 inflection==0.5.1
     # via drf-yasg
 jmespath==1.1.0
@@ -148,8 +163,12 @@ mysqlclient==2.2.8
     # via -r requirements/dev.in
 ordered-set==4.1.0
     # via -r requirements/base.in
-packaging==26.1
-    # via drf-yasg
+packaging==26.2
+    # via
+    #   drf-yasg
+    #   snowflake-connector-python
+platformdirs==4.9.6
+    # via snowflake-connector-python
 psutil==7.2.2
     # via edx-django-utils
 pycparser==3.0
@@ -159,18 +178,23 @@ pyjwt[crypto]==2.12.1
     #   drf-jwt
     #   edx-drf-extensions
     #   edx-rest-api-client
+    #   snowflake-connector-python
 pymemcache==4.0.0
     # via -r requirements/base.in
-pymongo==4.16.0
+pymongo==4.17.0
     # via edx-opaque-keys
 pynacl==1.6.2
     # via edx-django-utils
+pyopenssl==26.1.0
+    # via snowflake-connector-python
 python-dateutil==2.9.0.post0
     # via botocore
 python-memcached==1.62
     # via -r requirements/base.in
 pytz==2026.1.post1
-    # via drf-yasg
+    # via
+    #   drf-yasg
+    #   snowflake-connector-python
 pyyaml==6.0.3
     # via
     #   drf-yasg
@@ -180,9 +204,10 @@ requests==2.33.1
     #   edx-drf-extensions
     #   edx-enterprise-data
     #   edx-rest-api-client
+    #   snowflake-connector-python
 rules==3.5
     # via edx-enterprise-data
-s3transfer==0.16.0
+s3transfer==0.16.1
     # via boto3
 semantic-version==2.10.0
     # via edx-drf-extensions
@@ -193,18 +218,26 @@ six==1.17.0
     #   edx-rbac
     #   html5lib
     #   python-dateutil
+snowflake-connector-python==4.4.0
+    # via edx-enterprise-data
+sortedcontainers==2.4.0
+    # via snowflake-connector-python
 sqlparse==0.5.5
     # via django
 stevedore==5.7.0
     # via
     #   edx-django-utils
     #   edx-opaque-keys
+tomlkit==0.14.0
+    # via snowflake-connector-python
 tqdm==4.67.3
     # via -r requirements/base.in
 typing-extensions==4.15.0
     # via
     #   django-countries
     #   edx-opaque-keys
+    #   pyopenssl
+    #   snowflake-connector-python
 uritemplate==4.2.0
     # via drf-yasg
 urllib3==1.26.20
