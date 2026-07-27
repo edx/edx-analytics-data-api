@@ -90,6 +90,20 @@ DATABASES = {
 }
 ########## END DATABASE CONFIGURATION
 
+########## INSIGHTS SNOWFLAKE CONFIGURATION
+INSIGHTS_SNOWFLAKE = {
+    'ENABLED': False,
+    'ACCOUNT': None,
+    'USER': None,
+    'ROLE': None,
+    'WAREHOUSE': None,
+    'DATABASE': 'PROD',
+    'SCHEMA': 'INSIGHTS',
+    'PRIVATE_KEY': None,
+    'PRIVATE_KEY_PASSPHRASE': None,
+}
+########## END INSIGHTS SNOWFLAKE CONFIGURATION
+
 ########## GENERAL CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#time-zone
 TIME_ZONE = 'UTC'
