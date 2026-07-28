@@ -2,6 +2,6 @@
 
 -r base.in                          # Core dependencies of edx-analytics-data-api
 
-Sphinx<9.1                          # Developer documentation builder (9.1+ requires Python 3.12)
+Sphinx                              # Developer documentation builder
 path
 sphinx-book-theme
