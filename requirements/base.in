@@ -9,10 +9,12 @@ Django                              # BSD License
 django-countries                    # MIT
 python-memcached                    # Python Software Foundation License v2
 pymemcache
+cryptography                        # Apache-2.0 OR BSD
+snowflake-connector-python          # Apache 2.0
 djangorestframework                 # BSD
 djangorestframework-csv             # BSD
 django-storages                     # BSD
-html5lib			    # MIT
+html5lib			                # MIT
 ordered-set                         # MIT
 tqdm                                # MIT
 urllib3                             # MIT
