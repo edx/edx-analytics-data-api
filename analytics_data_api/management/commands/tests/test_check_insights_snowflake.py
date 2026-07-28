@@ -8,7 +8,6 @@ from django.test import SimpleTestCase
 
 from analytics_data_api.snowflake_client import SnowflakeConfigurationError
 
-
 VALID_CONFIG = {
     'ACCOUNT': 'edx.us-east-1',
     'USER': 'INSIGHTS_API_SERVICE_USER',

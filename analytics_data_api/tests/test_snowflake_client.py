@@ -15,7 +15,6 @@ from analytics_data_api.snowflake_client import (
     validate_snowflake_identifier,
 )
 
-
 VALID_CONFIG = {
     'ACCOUNT': 'edx.us-east-1',
     'USER': 'INSIGHTS_API_SERVICE_USER',
