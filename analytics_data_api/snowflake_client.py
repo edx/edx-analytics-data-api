@@ -11,7 +11,6 @@ from importlib import import_module
 from cryptography.hazmat.primitives import serialization
 from django.conf import settings
 
-
 QUERY_TAG = 'edx_analytics_api_insights_snowflake_phase1'
 DEFAULT_VALIDATION_TABLE = 'COURSE_ACTIVITY_WEEKLY'
 REQUIRED_CONFIG_KEYS = (
