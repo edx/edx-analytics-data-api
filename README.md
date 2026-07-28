@@ -14,18 +14,22 @@
 | analytics\_data\_api/docker\_gunicorn\_configuration.py                               |        6 |        6 |        0 |        0 |      0% |      6-13 |
 | analytics\_data\_api/management/\_\_init\_\_.py                                       |        0 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/management/commands/\_\_init\_\_.py                              |        0 |        0 |        0 |        0 |    100% |           |
+| analytics\_data\_api/management/commands/check\_insights\_snowflake.py                |       24 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/management/commands/generate\_data.py                            |      165 |        3 |       46 |        0 |     99% |   300-307 |
 | analytics\_data\_api/management/commands/generate\_fake\_course\_data.py              |       40 |        5 |        6 |        2 |     80% | 71-74, 84 |
 | analytics\_data\_api/management/commands/generate\_stage\_course\_data.py             |       38 |        0 |        6 |        0 |    100% |           |
 | analytics\_data\_api/management/commands/set\_api\_key.py                             |       25 |        0 |        6 |        0 |    100% |           |
+| analytics\_data\_api/management/commands/tests/test\_check\_insights\_snowflake.py    |       38 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/management/commands/tests/test\_generate\_fake\_course\_data.py  |       13 |        0 |        2 |        0 |    100% |           |
 | analytics\_data\_api/management/commands/tests/test\_generate\_stage\_course\_data.py |       42 |        0 |       18 |        0 |    100% |           |
 | analytics\_data\_api/middleware.py                                                    |       68 |        3 |        4 |        0 |     96% |69, 73, 77 |
 | analytics\_data\_api/models.py                                                        |        0 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/renderers.py                                                     |       41 |        0 |       16 |        0 |    100% |           |
+| analytics\_data\_api/snowflake\_client.py                                             |       53 |        0 |       12 |        1 |     98% | 112-\>114 |
 | analytics\_data\_api/tests/\_\_init\_\_.py                                            |        0 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/tests/test\_middleware.py                                        |       18 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/tests/test\_renderers.py                                         |       37 |        0 |        0 |        0 |    100% |           |
+| analytics\_data\_api/tests/test\_snowflake\_client.py                                 |       67 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/tests/test\_throttles.py                                         |       36 |        0 |        2 |        0 |    100% |           |
 | analytics\_data\_api/tests/test\_utils.py                                             |       86 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/throttles.py                                                     |       13 |        0 |        2 |        0 |    100% |           |
@@ -66,7 +70,7 @@
 | analytics\_data\_api/v0/views/videos.py                                               |       11 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/v1/\_\_init\_\_.py                                               |        0 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/v1/urls.py                                                       |       11 |        0 |        2 |        0 |    100% |           |
-| **TOTAL**                                                                             | **3022** |   **63** |  **384** |   **11** | **98%** |           |
+| **TOTAL**                                                                             | **3204** |   **63** |  **396** |   **12** | **98%** |           |
 
 
 ## Setup coverage badge
