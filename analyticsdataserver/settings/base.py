@@ -92,7 +92,6 @@ DATABASES = {
 
 ########## INSIGHTS SNOWFLAKE CONFIGURATION
 INSIGHTS_SNOWFLAKE = {
-    'ENABLED': False,
     'ACCOUNT': None,
     'USER': None,
     'ROLE': None,
