@@ -1,4 +1,9 @@
-"""Validate the Insights Snowflake connection from the deployed Analytics API service."""
+"""
+Validate the Insights Snowflake connection from the deployed Analytics API service.
+
+Temporary Phase 1 smoke-test command. Remove it after Snowflake connectivity
+validation is complete and real endpoint migration work owns the connection path.
+"""
 
 from django.core.management.base import BaseCommand, CommandError
 
