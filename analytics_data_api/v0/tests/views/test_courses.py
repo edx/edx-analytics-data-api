@@ -26,6 +26,7 @@ from analytics_data_api.constants.engagement_events import (
     VIDEO,
     VIEWED,
 )
+from analytics_data_api.middleware import thread_data
 from analytics_data_api.tests.test_utils import set_databases
 from analytics_data_api.utils import get_filename_safe_course_id
 from analytics_data_api.v0 import models
@@ -541,6 +542,11 @@ class CourseActivityWeeklyViewTests(CourseViewTestCaseMixin, TestCaseWithAuthent
               interval_end=self.interval_end,
               activity_type=activity_type,
               count=100)
+
+    def tearDown(self):
+        if hasattr(thread_data, 'analyticsapi_database'):
+            del thread_data.analyticsapi_database
+        super().tearDown()
 
     @classmethod
     def setUpClass(cls):
