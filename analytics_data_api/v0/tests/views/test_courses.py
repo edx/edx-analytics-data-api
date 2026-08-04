@@ -576,6 +576,52 @@ class CourseActivityWeeklyViewTests(CourseViewTestCaseMixin, TestCaseWithAuthent
 
         return response
 
+    def test_get_uses_aurora_when_snowflake_flag_disabled(self):
+        course_id = CourseSamples.course_ids[0]
+        self.generate_data(course_id)
+        expected = self.format_as_response(*self.get_latest_data(course_id))
+
+        with patch('analytics_data_api.v0.views.courses.is_course_activity_snowflake_enabled', return_value=False), \
+                patch('analytics_data_api.v0.views.courses.get_course_activity_weekly') as mock_get_activity:
+            response = self.authenticated_get(f'/api/v0/courses/{course_id}/activity/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected)
+        mock_get_activity.assert_not_called()
+
+    def test_get_uses_snowflake_service_when_snowflake_flag_enabled(self):
+        course_id = CourseSamples.course_ids[0]
+        created = self.interval_end + datetime.timedelta(days=1)
+        snowflake_data = [{
+            'course_id': course_id,
+            'interval_start': self.interval_start,
+            'interval_end': self.interval_end,
+            'created': created,
+            'any': 300,
+            'attempted_problem': 200,
+            'played_video': 400,
+        }]
+        expected = [{
+            'course_id': course_id,
+            'interval_start': self.interval_start.strftime(settings.DATETIME_FORMAT),
+            'interval_end': self.interval_end.strftime(settings.DATETIME_FORMAT),
+            'created': created.strftime(settings.DATETIME_FORMAT),
+            'any': 300,
+            'attempted_problem': 200,
+            'played_video': 400,
+        }]
+
+        with patch('analytics_data_api.v0.views.courses.is_course_activity_snowflake_enabled', return_value=True), \
+                patch(
+                    'analytics_data_api.v0.views.courses.get_course_activity_weekly',
+                    return_value=snowflake_data,
+                ) as mock_get_activity:
+            response = self.authenticated_get(f'/api/v1/courses/{course_id}/activity/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected)
+        mock_get_activity.assert_called_once_with(course_id, None, None)
+
     @ddt.data(*CourseSamples.course_ids)
     def test_get_with_intervals(self, course_id):
         """ Verify the endpoint returns multiple data points when supplied with an interval of dates. """
