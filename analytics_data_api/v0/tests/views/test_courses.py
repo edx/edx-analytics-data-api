@@ -593,6 +593,7 @@ class CourseActivityWeeklyViewTests(CourseViewTestCaseMixin, TestCaseWithAuthent
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, expected)
+        self.assertEqual(response['X-Insights-Data-Source'], 'aurora')
         mock_get_activity.assert_not_called()
 
     def test_get_uses_snowflake_service_when_snowflake_flag_enabled(self):
@@ -626,6 +627,7 @@ class CourseActivityWeeklyViewTests(CourseViewTestCaseMixin, TestCaseWithAuthent
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, expected)
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
         mock_get_activity.assert_called_once_with(course_id, None, None)
 
     def test_get_returns_404_when_snowflake_flag_enabled_and_no_data(self):

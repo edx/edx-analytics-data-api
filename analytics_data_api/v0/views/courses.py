@@ -120,6 +120,10 @@ class CourseActivityWeeklyView(BaseCourseView):
     slug = 'engagement-activity'
     model = models.CourseActivityWeekly
     serializer_class = serializers.CourseActivityWeeklySerializer
+    data_source_header = 'X-Insights-Data-Source'
+    data_source_aurora = 'aurora'
+    data_source_snowflake = 'snowflake'
+    insights_data_source = None
 
     def apply_date_filtering(self, queryset):
         if self.start_date or self.end_date:
@@ -137,13 +141,21 @@ class CourseActivityWeeklyView(BaseCourseView):
                 queryset = queryset.filter(interval_end=latest_date)
         return queryset
 
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        if self.insights_data_source:
+            response[self.data_source_header] = self.insights_data_source
+        return response
+
     def get_queryset(self):
         if is_course_activity_snowflake_enabled(self.request):
+            self.insights_data_source = self.data_source_snowflake
             data = get_course_activity_weekly(self.course_id, self.start_date, self.end_date)
             if data:
                 return data
             raise Http404
 
+        self.insights_data_source = self.data_source_aurora
         queryset = super().get_queryset()
         queryset = self.format_data(queryset)
         return queryset
