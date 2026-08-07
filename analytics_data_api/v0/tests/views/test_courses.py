@@ -26,6 +26,7 @@ from analytics_data_api.constants.engagement_events import (
     VIDEO,
     VIEWED,
 )
+from analytics_data_api.middleware import thread_data
 from analytics_data_api.tests.test_utils import set_databases
 from analytics_data_api.utils import get_filename_safe_course_id
 from analytics_data_api.v0 import models
@@ -542,6 +543,11 @@ class CourseActivityWeeklyViewTests(CourseViewTestCaseMixin, TestCaseWithAuthent
               activity_type=activity_type,
               count=100)
 
+    def tearDown(self):
+        if hasattr(thread_data, 'analyticsapi_database'):
+            del thread_data.analyticsapi_database
+        super().tearDown()
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -575,6 +581,67 @@ class CourseActivityWeeklyViewTests(CourseViewTestCaseMixin, TestCaseWithAuthent
             response.append(item)
 
         return response
+
+    def test_get_uses_aurora_when_snowflake_flag_disabled(self):
+        course_id = CourseSamples.course_ids[0]
+        self.generate_data(course_id)
+        expected = self.format_as_response(*self.get_latest_data(course_id))
+
+        with patch('analytics_data_api.v0.views.courses.is_course_activity_snowflake_enabled', return_value=False), \
+                patch('analytics_data_api.v0.views.courses.get_course_activity_weekly') as mock_get_activity:
+            response = self.authenticated_get(f'/api/v0/courses/{course_id}/activity/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected)
+        self.assertEqual(response['X-Insights-Data-Source'], 'aurora')
+        mock_get_activity.assert_not_called()
+
+    def test_get_uses_snowflake_service_when_snowflake_flag_enabled(self):
+        course_id = CourseSamples.course_ids[0]
+        created = self.interval_end + datetime.timedelta(days=1)
+        snowflake_data = [{
+            'course_id': course_id,
+            'interval_start': self.interval_start,
+            'interval_end': self.interval_end,
+            'created': created,
+            'any': 300,
+            'attempted_problem': 200,
+            'played_video': 400,
+        }]
+        expected = [{
+            'course_id': course_id,
+            'interval_start': self.interval_start.strftime(settings.DATETIME_FORMAT),
+            'interval_end': self.interval_end.strftime(settings.DATETIME_FORMAT),
+            'created': created.strftime(settings.DATETIME_FORMAT),
+            'any': 300,
+            'attempted_problem': 200,
+            'played_video': 400,
+        }]
+
+        with patch('analytics_data_api.v0.views.courses.is_course_activity_snowflake_enabled', return_value=True), \
+                patch(
+                    'analytics_data_api.v0.views.courses.get_course_activity_weekly',
+                    return_value=snowflake_data,
+        ) as mock_get_activity:
+            response = self.authenticated_get(f'/api/v1/courses/{course_id}/activity/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected)
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
+        mock_get_activity.assert_called_once_with(course_id, None, None)
+
+    def test_get_returns_404_when_snowflake_flag_enabled_and_no_data(self):
+        course_id = CourseSamples.course_ids[0]
+
+        with patch('analytics_data_api.v0.views.courses.is_course_activity_snowflake_enabled', return_value=True), \
+                patch(
+                    'analytics_data_api.v0.views.courses.get_course_activity_weekly',
+                    return_value=[],
+        ) as mock_get_activity:
+            response = self.authenticated_get(f'/api/v1/courses/{course_id}/activity/')
+
+        self.assertEqual(response.status_code, 404)
+        mock_get_activity.assert_called_once_with(course_id, None, None)
 
     @ddt.data(*CourseSamples.course_ids)
     def test_get_with_intervals(self, course_id):

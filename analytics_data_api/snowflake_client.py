@@ -1,8 +1,9 @@
 """
 Helpers for the Insights Snowflake connection.
 
-This module is intentionally not used by existing API views. Phase 1 only uses
-it from a manual management command to validate deployed Snowflake connectivity.
+This module holds low-level connection helpers. The Phase 1 management command
+uses it directly, and Snowflake-backed endpoints should use it through the
+`analytics_data_api.insights_snowflake` package.
 """
 
 import re
