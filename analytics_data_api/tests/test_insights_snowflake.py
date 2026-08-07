@@ -139,6 +139,28 @@ class InsightsSnowflakeActivityMapperTests(SimpleTestCase):
             'any': 300,
         }])
 
+    def test_map_course_activity_weekly_rows_accepts_uppercase_snowflake_keys(self):
+        interval_start = datetime.datetime(2014, 1, 1, tzinfo=datetime.timezone.utc)
+        interval_end = datetime.datetime(2014, 1, 8, tzinfo=datetime.timezone.utc)
+        created = datetime.datetime(2014, 1, 9, tzinfo=datetime.timezone.utc)
+
+        rows = [{
+            'COURSE_ID': 'course-v1:edX+DemoX+Demo_Course',
+            'INTERVAL_START': interval_start,
+            'INTERVAL_END': interval_end,
+            'ACTIVITY_LABEL': 'ACTIVE',
+            'ACTIVITY_COUNT': 300,
+            'CREATED': created,
+        }]
+
+        self.assertEqual(map_course_activity_weekly_rows(rows), [{
+            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            'interval_start': interval_start,
+            'interval_end': interval_end,
+            'created': created,
+            'any': 300,
+        }])
+
 
 class InsightsSnowflakeServiceTests(SimpleTestCase):
     """Cover service orchestration without real Snowflake calls."""

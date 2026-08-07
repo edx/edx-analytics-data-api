@@ -628,6 +628,19 @@ class CourseActivityWeeklyViewTests(CourseViewTestCaseMixin, TestCaseWithAuthent
         self.assertEqual(response.data, expected)
         mock_get_activity.assert_called_once_with(course_id, None, None)
 
+    def test_get_returns_404_when_snowflake_flag_enabled_and_no_data(self):
+        course_id = CourseSamples.course_ids[0]
+
+        with patch('analytics_data_api.v0.views.courses.is_course_activity_snowflake_enabled', return_value=True), \
+                patch(
+                    'analytics_data_api.v0.views.courses.get_course_activity_weekly',
+                    return_value=[],
+        ) as mock_get_activity:
+            response = self.authenticated_get(f'/api/v1/courses/{course_id}/activity/')
+
+        self.assertEqual(response.status_code, 404)
+        mock_get_activity.assert_called_once_with(course_id, None, None)
+
     @ddt.data(*CourseSamples.course_ids)
     def test_get_with_intervals(self, course_id):
         """ Verify the endpoint returns multiple data points when supplied with an interval of dates. """
