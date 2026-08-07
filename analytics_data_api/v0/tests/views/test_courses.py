@@ -604,7 +604,7 @@ class CourseActivityWeeklyViewTests(CourseViewTestCaseMixin, TestCaseWithAuthent
                 patch(
                     'analytics_data_api.v0.views.courses.get_course_activity_weekly',
                     return_value=snowflake_data,
-                ) as mock_get_activity:
+        ) as mock_get_activity:
             response = self.authenticated_get(f'/api/v0/courses/{course_id}/activity/')
 
         self.assertEqual(response.status_code, 200)
