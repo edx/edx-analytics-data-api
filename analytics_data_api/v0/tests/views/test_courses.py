@@ -5,7 +5,6 @@
 import datetime
 from collections import OrderedDict
 from itertools import groupby
-from unittest import skip
 from unittest.mock import Mock, patch
 
 import ddt
@@ -527,7 +526,6 @@ class CourseEnrollmentByLocationViewTests(CourseEnrollmentViewTestCaseMixin, Tes
 
 @ddt.ddt
 @set_databases
-@skip('Temporary production validation forces course activity to Snowflake; revert after validation.')
 class CourseActivityWeeklyViewTests(CourseViewTestCaseMixin, TestCaseWithAuthentication):
     path = '/activity/'
     default_order_by = 'interval_end'
