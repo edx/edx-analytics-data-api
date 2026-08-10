@@ -148,10 +148,7 @@ class CourseActivityWeeklyView(BaseCourseView):
         return response
 
     def get_queryset(self):
-        # TEMPORARY: force Snowflake while SRE creates the Analytics API Waffle flag.
-        # Revert this to only `is_course_activity_snowflake_enabled(self.request)` after validation.
-        if getattr(settings, 'TEMP_FORCE_INSIGHTS_SNOWFLAKE_COURSE_ACTIVITY', True) or \
-                is_course_activity_snowflake_enabled(self.request):
+        if is_course_activity_snowflake_enabled(self.request):
             self.insights_data_source = self.data_source_snowflake
             data = get_course_activity_weekly(self.course_id, self.start_date, self.end_date)
             if data:
