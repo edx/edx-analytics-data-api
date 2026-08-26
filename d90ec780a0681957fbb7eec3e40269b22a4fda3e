@@ -1,0 +1,27 @@
+requirements/production.txt
+  s_99cb3310848dde::t_7761655b20db5c 115
+requirements/base.txt
+  s_99cb3310848dde::t_7761655b20db5c 115
+requirements/doc.txt
+  s_99cb3310848dde::t_7761655b20db5c 129
+requirements/test.txt
+  s_99cb3310848dde::t_7761655b20db5c 130
+requirements/dev.txt
+  s_99cb3310848dde::t_b2f0bb3ccf9e5d 116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "d90ec780a0681957fbb7eec3e40269b22a4fda3e",
+  "prompts": {},
+  "sessions": {
+    "s_99cb3310848dde": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "14cc6c2d-d0c1-4d9c-a17f-2cb9896bb81a",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "rgopalrao-sonata-png <rgopalrao-sonata@2u.com>"
+    }
+  }
+}

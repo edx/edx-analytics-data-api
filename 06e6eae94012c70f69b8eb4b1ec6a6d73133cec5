@@ -1,0 +1,27 @@
+requirements/dev.txt
+  s_e8b4c26c78faa0::t_df620716031b5f 127
+requirements/production.txt
+  s_e8b4c26c78faa0::t_df620716031b5f 127
+requirements/test.txt
+  s_e8b4c26c78faa0::t_df620716031b5f 143
+requirements/doc.txt
+  s_e8b4c26c78faa0::t_df620716031b5f 141
+requirements/base.txt
+  s_e8b4c26c78faa0::t_df620716031b5f 127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "06e6eae94012c70f69b8eb4b1ec6a6d73133cec5",
+  "prompts": {},
+  "sessions": {
+    "s_e8b4c26c78faa0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "75c6943e-891d-4d99-9666-a998ee4113bd",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "sjasti-sonata-svg <sjasti-sonata@2u.com>"
+    }
+  }
+}
