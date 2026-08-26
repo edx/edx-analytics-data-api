@@ -1,0 +1,29 @@
+requirements/doc.txt
+  s_52405a9f323181::t_6687b887a21d5f 2,7-8,62,87,89,92,113,135,141,146,150,154,156,182,235,243,260
+requirements/base.in
+  s_52405a9f323181::t_4e5eb7c54878a5 28
+requirements/production.txt
+  s_52405a9f323181::t_6687b887a21d5f 2,7-8,52,77,79,82,103,121,127,132,136,140,142,168,217,222,237
+requirements/test.txt
+  s_52405a9f323181::t_6687b887a21d5f 2,7-8,66,93,95,98,119,137,143,148,152,156,158,190,263,271,288
+requirements/base.txt
+  s_52405a9f323181::t_6687b887a21d5f 2,7-8,52,77,79,82,103,121,127,132,136,140,142,162,203,208,223
+requirements/dev.txt
+  s_52405a9f323181::t_6687b887a21d5f 2,7-8,52,77,79,82,103,121,127,132,136,140,142,162,205,210,225
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "f0f347d8abe6c1f81d865a297abe807abfdd5508",
+  "prompts": {},
+  "sessions": {
+    "s_52405a9f323181": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "92ac6356-121f-42ab-94c5-a5a7db9fb01f",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "sjasti-sonata-svg <sjasti-sonata@2u.com>"
+    }
+  }
+}
