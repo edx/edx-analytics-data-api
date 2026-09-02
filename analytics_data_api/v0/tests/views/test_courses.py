@@ -32,6 +32,7 @@ from analytics_data_api.utils import get_filename_safe_course_id
 from analytics_data_api.v0 import models
 from analytics_data_api.v0.tests.utils import create_engagement
 from analytics_data_api.v0.tests.views import CourseSamples, VerifyCsvResponseMixin
+from analytics_data_api.v0.views import courses as course_views
 from analyticsdataserver.tests.utils import TestCaseWithAuthentication
 
 
@@ -168,14 +169,31 @@ class CourseEnrollmentViewTestCaseMixin(CourseViewTestCaseMixin):
         super().setUpClass()
         cls.date = datetime.date(2014, 1, 1)
 
+    def tearDown(self):
+        if hasattr(thread_data, 'analyticsapi_database'):
+            del thread_data.analyticsapi_database
+        super().tearDown()
+
     def get_latest_data(self, course_id):
         return self.model.objects.filter(course_id=course_id, date=self.date).order_by('date', *self.order_by)
 
     @ddt.data(*CourseSamples.course_ids)
     def test_get_with_intervals(self, course_id):
         self.generate_data(course_id)
-        expected = self.format_as_response(*self.model.objects.filter(date=self.date))
+        expected = self.format_as_response(*self.model.objects.filter(course_id=course_id, date=self.date))
         self.assertIntervalFilteringWorks(expected, course_id, self.date, self.date + datetime.timedelta(days=1))
+
+    def assertSnowflakeResponse(self, course_id, path, view_class, snowflake_data, expected):
+        mock_get_data = Mock(return_value=snowflake_data)
+
+        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+            with patch.object(view_class, 'snowflake_service_function', staticmethod(mock_get_data)):
+                response = self.authenticated_get(f'/api/v1/courses/{course_id}{path}')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected)
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
+        mock_get_data.assert_called_once_with(course_id, None, None)
 
 
 @ddt.ddt
@@ -332,6 +350,44 @@ class CourseEnrollmentByEducationViewTests(CourseEnrollmentViewTestCaseMixin, Te
              'created': ce.created.strftime(settings.DATETIME_FORMAT)} for ce in args
         ]
 
+    def test_get_uses_snowflake_service_when_global_flag_enabled(self):
+        course_id = CourseSamples.course_ids[0]
+        created = datetime.datetime(2014, 1, 2, tzinfo=pytz.utc)
+        snowflake_data = [{
+            'course_id': course_id,
+            'date': self.date,
+            'education_level': self.el1,
+            'count': 25,
+            'created': created,
+        }]
+        expected = [{
+            'course_id': course_id,
+            'date': self.date.strftime(settings.DATE_FORMAT),
+            'education_level': self.el1,
+            'count': 25,
+            'created': created.strftime(settings.DATETIME_FORMAT),
+        }]
+
+        self.assertSnowflakeResponse(
+            course_id,
+            '/enrollment/education/',
+            course_views.CourseEnrollmentByEducationView,
+            snowflake_data,
+            expected,
+        )
+
+    def test_get_returns_404_when_global_flag_enabled_and_no_snowflake_data(self):
+        course_id = CourseSamples.course_ids[0]
+        mock_get_data = Mock(return_value=[])
+
+        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+            with patch.object(course_views.CourseEnrollmentView, 'snowflake_service_function',
+                              staticmethod(mock_get_data)):
+                response = self.authenticated_get(f'/api/v1/courses/{course_id}/enrollment/')
+
+        self.assertEqual(response.status_code, 404)
+        mock_get_data.assert_called_once_with(course_id, None, None)
+
 
 @ddt.ddt
 @set_databases
@@ -356,6 +412,7 @@ class CourseEnrollmentByGenderViewTests(CourseEnrollmentViewTestCaseMixin, Defau
 
     def tearDown(self):
         self.destroy_data()
+        super().tearDown()
 
     def serialize_enrollment(self, enrollment):
         return {
@@ -396,6 +453,36 @@ class CourseEnrollmentByGenderViewTests(CourseEnrollmentViewTestCaseMixin, Defau
 
         self.assertViewReturnsExpectedData([expected], course_id)
 
+    def test_get_uses_snowflake_service_when_global_flag_enabled(self):
+        course_id = CourseSamples.course_ids[0]
+        created = datetime.datetime(2014, 1, 2, tzinfo=pytz.utc)
+        snowflake_data = [{
+            'course_id': course_id,
+            'date': self.date,
+            'female': 3,
+            'male': 4,
+            'other': 5,
+            'unknown': 6,
+            'created': created,
+        }]
+        expected = [{
+            'course_id': course_id,
+            'date': self.date.strftime(settings.DATE_FORMAT),
+            'female': 3,
+            'male': 4,
+            'other': 5,
+            'unknown': 6,
+            'created': created.strftime(settings.DATETIME_FORMAT),
+        }]
+
+        self.assertSnowflakeResponse(
+            course_id,
+            '/enrollment/gender/',
+            course_views.CourseEnrollmentByGenderView,
+            snowflake_data,
+            expected,
+        )
+
 
 @set_databases
 class CourseEnrollmentViewTests(CourseEnrollmentViewTestCaseMixin, TestCaseWithAuthentication):
@@ -413,6 +500,55 @@ class CourseEnrollmentViewTests(CourseEnrollmentViewTestCaseMixin, TestCaseWithA
              'date': ce.date.strftime(settings.DATE_FORMAT), 'created': ce.created.strftime(settings.DATETIME_FORMAT)}
             for ce in args
         ]
+
+    def test_get_uses_aurora_when_global_snowflake_flag_disabled(self):
+        course_id = CourseSamples.course_ids[0]
+        latest_enrollment = self.model.objects.using(settings.ANALYTICS_DATABASE_V1).create(
+            course_id=course_id,
+            date=self.date,
+            count=203,
+        )
+        self.model.objects.using(settings.ANALYTICS_DATABASE_V1).create(
+            course_id=course_id,
+            date=self.date - datetime.timedelta(days=5),
+            count=203,
+        )
+        expected = self.format_as_response(latest_enrollment)
+        mock_get_data = Mock()
+
+        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=False):
+            with patch.object(course_views.CourseEnrollmentView, 'snowflake_service_function',
+                              staticmethod(mock_get_data)):
+                response = self.authenticated_get(f'/api/v1/courses/{course_id}/enrollment/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected)
+        self.assertEqual(response['X-Insights-Data-Source'], 'aurora')
+        mock_get_data.assert_not_called()
+
+    def test_get_uses_snowflake_service_when_global_flag_enabled(self):
+        course_id = CourseSamples.course_ids[0]
+        created = datetime.datetime(2014, 1, 2, tzinfo=pytz.utc)
+        snowflake_data = [{
+            'course_id': course_id,
+            'date': self.date,
+            'count': 203,
+            'created': created,
+        }]
+        expected = [{
+            'course_id': course_id,
+            'date': self.date.strftime(settings.DATE_FORMAT),
+            'count': 203,
+            'created': created.strftime(settings.DATETIME_FORMAT),
+        }]
+
+        self.assertSnowflakeResponse(
+            course_id,
+            '/enrollment/',
+            course_views.CourseEnrollmentView,
+            snowflake_data,
+            expected,
+        )
 
 
 @ddt.ddt
@@ -476,6 +612,44 @@ class CourseEnrollmentModeViewTests(CourseEnrollmentViewTestCaseMixin, DefaultFi
 
         self.assertViewReturnsExpectedData([expected], course_id)
 
+    def test_get_uses_snowflake_service_when_global_flag_enabled(self):
+        course_id = CourseSamples.course_ids[0]
+        created = datetime.datetime(2014, 1, 2, tzinfo=pytz.utc)
+        snowflake_data = [{
+            'course_id': course_id,
+            'date': self.date,
+            'count': 25,
+            'cumulative_count': 100,
+            'created': created,
+            'audit': 5,
+            'credit': 4,
+            'honor': 3,
+            'professional': 2,
+            'verified': 1,
+            'masters': 10,
+        }]
+        expected = [{
+            'course_id': course_id,
+            'date': self.date.strftime(settings.DATE_FORMAT),
+            'count': 25,
+            'cumulative_count': 100,
+            'created': created.strftime(settings.DATETIME_FORMAT),
+            'audit': 5,
+            'credit': 4,
+            'honor': 3,
+            'professional': 2,
+            'verified': 1,
+            'masters': 10,
+        }]
+
+        self.assertSnowflakeResponse(
+            course_id,
+            '/enrollment/mode/',
+            course_views.CourseEnrollmentModeView,
+            snowflake_data,
+            expected,
+        )
+
 
 @set_databases
 class CourseEnrollmentByLocationViewTests(CourseEnrollmentViewTestCaseMixin, TestCaseWithAuthentication):
@@ -522,6 +696,36 @@ class CourseEnrollmentByLocationViewTests(CourseEnrollmentViewTestCaseMixin, Tes
     def setUpClass(cls):
         super().setUpClass()
         cls.country = get_country('US')
+
+    def test_get_uses_snowflake_service_when_global_flag_enabled(self):
+        course_id = CourseSamples.course_ids[0]
+        created = datetime.datetime(2014, 1, 2, tzinfo=pytz.utc)
+        snowflake_data = [models.CourseEnrollmentByCountry(
+            course_id=course_id,
+            date=self.date,
+            country_code='US',
+            count=455,
+            created=created,
+        )]
+        expected = [{
+            'course_id': course_id,
+            'date': self.date.strftime(settings.DATE_FORMAT),
+            'country': {
+                'alpha2': self.country.alpha2,
+                'alpha3': self.country.alpha3,
+                'name': self.country.name,
+            },
+            'count': 455,
+            'created': created.strftime(settings.DATETIME_FORMAT),
+        }]
+
+        self.assertSnowflakeResponse(
+            course_id,
+            '/enrollment/location/',
+            course_views.CourseEnrollmentByLocationView,
+            snowflake_data,
+            expected,
+        )
 
 
 @ddt.ddt

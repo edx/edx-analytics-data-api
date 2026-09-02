@@ -6,15 +6,40 @@ from unittest.mock import Mock, patch
 from django.test import SimpleTestCase, override_settings
 from rest_framework.response import Response
 
+from analytics_data_api.constants import country, enrollment_modes, genders
 from analytics_data_api.insights_snowflake.client import fetch_all, get_qualified_table_name
 from analytics_data_api.insights_snowflake.mappers.activity import map_course_activity_weekly_rows
+from analytics_data_api.insights_snowflake.mappers.enrollment import (
+    map_course_enrollment_daily_rows,
+    map_course_enrollment_education_rows,
+    map_course_enrollment_gender_rows,
+    map_course_enrollment_location_rows,
+    map_course_enrollment_mode_rows,
+)
 from analytics_data_api.insights_snowflake.queries.activity import get_course_activity_weekly_rows
+from analytics_data_api.insights_snowflake.queries.enrollment import (
+    COURSE_ENROLLMENT_EDUCATION_LEVEL_CURRENT_TABLE,
+    COURSE_ENROLLMENT_GENDER_DAILY_TABLE,
+    COURSE_ENROLLMENT_LOCATION_CURRENT_TABLE,
+    get_course_enrollment_daily_rows,
+    get_course_enrollment_education_rows,
+    get_course_enrollment_gender_rows,
+    get_course_enrollment_location_rows,
+    get_course_enrollment_mode_rows,
+)
 from analytics_data_api.insights_snowflake.response_headers import (
     DATA_SOURCE_HEADER,
     DATA_SOURCE_SNOWFLAKE,
     InsightsDataSourceResponseMixin,
 )
-from analytics_data_api.insights_snowflake.service import get_course_activity_weekly
+from analytics_data_api.insights_snowflake.service import (
+    get_course_activity_weekly,
+    get_course_enrollment,
+    get_course_enrollment_education,
+    get_course_enrollment_gender,
+    get_course_enrollment_location,
+    get_course_enrollment_mode,
+)
 from analytics_data_api.insights_snowflake.toggles import (
     COURSE_ACTIVITY_SNOWFLAKE_FLAG,
     INSIGHTS_SNOWFLAKE_FLAG,
@@ -110,6 +135,94 @@ class InsightsSnowflakeActivityQueryTests(SimpleTestCase):
         })
 
 
+class InsightsSnowflakeEnrollmentQueryTests(SimpleTestCase):
+    """Cover enrollment query construction with mocked Snowflake execution."""
+
+    @patch('analytics_data_api.insights_snowflake.queries.enrollment.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.enrollment.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY')
+    )
+    def test_get_course_enrollment_daily_rows_uses_latest_date_query_without_dates(self, mock_fetch_all):
+        mock_fetch_all.return_value = [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}]
+
+        rows = get_course_enrollment_daily_rows('course-v1:edX+DemoX+Demo_Course')
+
+        self.assertEqual(rows, [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}])
+        sql, params = mock_fetch_all.call_args[0]
+        self.assertIn('SELECT MAX("DATE")', sql)
+        self.assertEqual(params, {'course_id': 'course-v1:edX+DemoX+Demo_Course'})
+
+    @patch('analytics_data_api.insights_snowflake.queries.enrollment.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.enrollment.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.COURSE_ENROLLMENT_MODE_DAILY')
+    )
+    def test_get_course_enrollment_mode_rows_uses_date_range_query_with_dates(self, mock_fetch_all):
+        start_date = datetime.datetime(2014, 1, 1, tzinfo=datetime.timezone.utc)
+        end_date = datetime.datetime(2014, 1, 8, tzinfo=datetime.timezone.utc)
+
+        get_course_enrollment_mode_rows(
+            'course-v1:edX+DemoX+Demo_Course',
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        sql, params = mock_fetch_all.call_args[0]
+        self.assertIn('"DATE" >= %(start_date)s', sql)
+        self.assertIn('"DATE" < %(end_date)s', sql)
+        self.assertEqual(params, {
+            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            'start_date': start_date.date(),
+            'end_date': end_date.date(),
+        })
+
+    @patch('analytics_data_api.insights_snowflake.queries.enrollment.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.enrollment.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY')
+    )
+    def test_get_course_enrollment_daily_rows_accepts_date_objects(self, mock_fetch_all):
+        start_date = datetime.date(2014, 1, 1)
+        end_date = datetime.date(2014, 1, 8)
+
+        get_course_enrollment_daily_rows(
+            'course-v1:edX+DemoX+Demo_Course',
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        _sql, params = mock_fetch_all.call_args[0]
+        self.assertEqual(params, {
+            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            'start_date': start_date,
+            'end_date': end_date,
+        })
+
+    @patch('analytics_data_api.insights_snowflake.queries.enrollment.fetch_all')
+    @patch('analytics_data_api.insights_snowflake.queries.enrollment.get_qualified_table_name')
+    def test_enrollment_query_functions_use_expected_tables(self, mock_get_table_name, _mock_fetch_all):
+        mock_get_table_name.return_value = 'PROD.INSIGHTS.ENROLLMENT_TABLE'
+        course_id = 'course-v1:edX+DemoX+Demo_Course'
+
+        query_functions = [
+            (get_course_enrollment_education_rows, COURSE_ENROLLMENT_EDUCATION_LEVEL_CURRENT_TABLE, 'education_level'),
+            (get_course_enrollment_gender_rows, COURSE_ENROLLMENT_GENDER_DAILY_TABLE, 'gender'),
+            (get_course_enrollment_location_rows, COURSE_ENROLLMENT_LOCATION_CURRENT_TABLE, 'country_code'),
+        ]
+
+        for query_function, table, expected_column in query_functions:
+            mock_get_table_name.reset_mock()
+            _mock_fetch_all.reset_mock()
+
+            query_function(course_id)
+
+            mock_get_table_name.assert_called_once_with(table)
+            sql, params = _mock_fetch_all.call_args[0]
+            self.assertIn(expected_column, sql)
+            self.assertEqual(params, {'course_id': course_id})
+
+
 class InsightsSnowflakeActivityMapperTests(SimpleTestCase):
     """Cover Snowflake activity row mapping into the existing API shape."""
 
@@ -170,8 +283,207 @@ class InsightsSnowflakeActivityMapperTests(SimpleTestCase):
         }])
 
 
+class InsightsSnowflakeEnrollmentMapperTests(SimpleTestCase):
+    """Cover Snowflake enrollment row mapping into the existing API shapes."""
+
+    def test_map_course_enrollment_daily_rows_accepts_uppercase_snowflake_keys(self):
+        date = datetime.date(2014, 1, 1)
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        rows = [{
+            'COURSE_ID': 'course-v1:edX+DemoX+Demo_Course',
+            'DATE': date,
+            'COUNT': 203,
+            'CREATED': created,
+        }]
+
+        self.assertEqual(map_course_enrollment_daily_rows(rows), [{
+            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            'date': date,
+            'count': 203,
+            'created': created,
+        }])
+
+    def test_map_course_enrollment_education_rows(self):
+        date = datetime.date(2014, 1, 1)
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        rows = [{
+            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            'date': date,
+            'education_level': 'bachelors',
+            'count': 25,
+            'created': created,
+        }]
+
+        self.assertEqual(map_course_enrollment_education_rows(rows), [{
+            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            'date': date,
+            'education_level': 'bachelors',
+            'count': 25,
+            'created': created,
+        }])
+
+    def test_map_course_enrollment_mode_rows_pivots_modes(self):
+        date = datetime.date(2014, 1, 1)
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        later_created = datetime.datetime(2014, 1, 3, tzinfo=datetime.timezone.utc)
+        rows = [
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': date,
+                'mode': enrollment_modes.PROFESSIONAL_NO_ID,
+                'count': 3,
+                'cumulative_count': 7,
+                'created': created,
+            },
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': date,
+                'mode': enrollment_modes.PROFESSIONAL,
+                'count': 4,
+                'cumulative_count': 8,
+                'created': later_created,
+            },
+        ]
+
+        self.assertEqual(map_course_enrollment_mode_rows(rows), [{
+            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            'date': date,
+            'created': later_created,
+            enrollment_modes.PROFESSIONAL: 7,
+            'count': 7,
+            'cumulative_count': 15,
+        }])
+
+    def test_map_course_enrollment_gender_rows_pivots_genders(self):
+        date = datetime.date(2014, 1, 1)
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        rows = [
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': date,
+                'gender': 'f',
+                'count': 3,
+                'created': created,
+            },
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': date,
+                'gender': None,
+                'count': 4,
+                'created': created,
+            },
+        ]
+
+        self.assertEqual(map_course_enrollment_gender_rows(rows), [{
+            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            'date': date,
+            'created': created,
+            genders.MALE: 0,
+            genders.FEMALE: 3,
+            genders.OTHER: 0,
+            genders.UNKNOWN: 4,
+        }])
+
+    def test_map_course_enrollment_location_rows_groups_unknown_countries(self):
+        date = datetime.date(2014, 1, 1)
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        rows = [
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': date,
+                'country_code': '',
+                'count': 3,
+                'created': created,
+            },
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': date,
+                'country_code': None,
+                'count': 4,
+                'created': created,
+            },
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': date,
+                'country_code': 'US',
+                'count': 5,
+                'created': created,
+            },
+        ]
+
+        mapped_rows = map_course_enrollment_location_rows(rows)
+
+        self.assertEqual(len(mapped_rows), 2)
+        self.assertEqual(mapped_rows[0].country.name, country.UNKNOWN_COUNTRY_CODE)
+        self.assertEqual(mapped_rows[0].count, 7)
+        self.assertEqual(mapped_rows[1].country.alpha2, 'US')
+        self.assertEqual(mapped_rows[1].count, 5)
+
+    def test_map_course_enrollment_location_rows_groups_unsorted_dates(self):
+        date = datetime.date(2014, 1, 1)
+        next_date = datetime.date(2014, 1, 2)
+        created = datetime.datetime(2014, 1, 3, tzinfo=datetime.timezone.utc)
+        rows = [
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': date,
+                'country_code': 'US',
+                'count': 3,
+                'created': created,
+            },
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': next_date,
+                'country_code': 'US',
+                'count': 4,
+                'created': created,
+            },
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': date,
+                'country_code': 'US',
+                'count': 5,
+                'created': created,
+            },
+        ]
+
+        mapped_rows = map_course_enrollment_location_rows(rows)
+
+        self.assertEqual(len(mapped_rows), 2)
+        self.assertEqual(mapped_rows[0].date, date)
+        self.assertEqual(mapped_rows[0].count, 8)
+        self.assertEqual(mapped_rows[1].date, next_date)
+        self.assertEqual(mapped_rows[1].count, 4)
+
+
 class InsightsSnowflakeServiceTests(SimpleTestCase):
     """Cover service orchestration without real Snowflake calls."""
+
+    def assertServiceCallsQueryAndMapper(self, service_function, query_path, mapper_path):
+        raw_rows = [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}]
+        mapped_rows = [{'course_id': 'course-v1:edX+DemoX+Demo_Course', 'count': 203}]
+        start_date = datetime.datetime(2014, 1, 1, tzinfo=datetime.timezone.utc)
+        end_date = datetime.datetime(2014, 1, 8, tzinfo=datetime.timezone.utc)
+
+        with patch(query_path) as mock_get_rows, patch(mapper_path) as mock_map_rows:
+            mock_get_rows.return_value = raw_rows
+            mock_map_rows.return_value = mapped_rows
+
+            self.assertEqual(
+                service_function(
+                    'course-v1:edX+DemoX+Demo_Course',
+                    start_date=start_date,
+                    end_date=end_date,
+                ),
+                mapped_rows,
+            )
+
+        mock_get_rows.assert_called_once_with(
+            'course-v1:edX+DemoX+Demo_Course',
+            start_date=start_date,
+            end_date=end_date,
+        )
+        mock_map_rows.assert_called_once_with(raw_rows)
 
     @patch('analytics_data_api.insights_snowflake.service.map_course_activity_weekly_rows')
     @patch('analytics_data_api.insights_snowflake.service.get_course_activity_weekly_rows')
@@ -198,6 +510,41 @@ class InsightsSnowflakeServiceTests(SimpleTestCase):
             end_date=end_date,
         )
         mock_map_rows.assert_called_once_with(raw_rows)
+
+    def test_get_course_enrollment_calls_query_and_mapper(self):
+        self.assertServiceCallsQueryAndMapper(
+            get_course_enrollment,
+            'analytics_data_api.insights_snowflake.service.get_course_enrollment_daily_rows',
+            'analytics_data_api.insights_snowflake.service.map_course_enrollment_daily_rows',
+        )
+
+    def test_get_course_enrollment_mode_calls_query_and_mapper(self):
+        self.assertServiceCallsQueryAndMapper(
+            get_course_enrollment_mode,
+            'analytics_data_api.insights_snowflake.service.get_course_enrollment_mode_rows',
+            'analytics_data_api.insights_snowflake.service.map_course_enrollment_mode_rows',
+        )
+
+    def test_get_course_enrollment_education_calls_query_and_mapper(self):
+        self.assertServiceCallsQueryAndMapper(
+            get_course_enrollment_education,
+            'analytics_data_api.insights_snowflake.service.get_course_enrollment_education_rows',
+            'analytics_data_api.insights_snowflake.service.map_course_enrollment_education_rows',
+        )
+
+    def test_get_course_enrollment_gender_calls_query_and_mapper(self):
+        self.assertServiceCallsQueryAndMapper(
+            get_course_enrollment_gender,
+            'analytics_data_api.insights_snowflake.service.get_course_enrollment_gender_rows',
+            'analytics_data_api.insights_snowflake.service.map_course_enrollment_gender_rows',
+        )
+
+    def test_get_course_enrollment_location_calls_query_and_mapper(self):
+        self.assertServiceCallsQueryAndMapper(
+            get_course_enrollment_location,
+            'analytics_data_api.insights_snowflake.service.get_course_enrollment_location_rows',
+            'analytics_data_api.insights_snowflake.service.map_course_enrollment_location_rows',
+        )
 
 
 class BaseTestView:
