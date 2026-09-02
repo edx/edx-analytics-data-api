@@ -169,6 +169,11 @@ class CourseEnrollmentViewTestCaseMixin(CourseViewTestCaseMixin):
         super().setUpClass()
         cls.date = datetime.date(2014, 1, 1)
 
+    def tearDown(self):
+        if hasattr(thread_data, 'analyticsapi_database'):
+            del thread_data.analyticsapi_database
+        super().tearDown()
+
     def get_latest_data(self, course_id):
         return self.model.objects.filter(course_id=course_id, date=self.date).order_by('date', *self.order_by)
 
@@ -407,6 +412,7 @@ class CourseEnrollmentByGenderViewTests(CourseEnrollmentViewTestCaseMixin, Defau
 
     def tearDown(self):
         self.destroy_data()
+        super().tearDown()
 
     def serialize_enrollment(self, enrollment):
         return {
