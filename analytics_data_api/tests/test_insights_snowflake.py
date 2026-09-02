@@ -4,14 +4,22 @@ import datetime
 from unittest.mock import Mock, patch
 
 from django.test import SimpleTestCase, override_settings
+from rest_framework.response import Response
 
 from analytics_data_api.insights_snowflake.client import fetch_all, get_qualified_table_name
 from analytics_data_api.insights_snowflake.mappers.activity import map_course_activity_weekly_rows
 from analytics_data_api.insights_snowflake.queries.activity import get_course_activity_weekly_rows
+from analytics_data_api.insights_snowflake.response_headers import (
+    DATA_SOURCE_HEADER,
+    DATA_SOURCE_SNOWFLAKE,
+    InsightsDataSourceResponseMixin,
+)
 from analytics_data_api.insights_snowflake.service import get_course_activity_weekly
 from analytics_data_api.insights_snowflake.toggles import (
     COURSE_ACTIVITY_SNOWFLAKE_FLAG,
+    INSIGHTS_SNOWFLAKE_FLAG,
     is_course_activity_snowflake_enabled,
+    is_insights_snowflake_enabled,
 )
 from analytics_data_api.snowflake_client import SnowflakeConfigurationError
 
@@ -192,14 +200,75 @@ class InsightsSnowflakeServiceTests(SimpleTestCase):
         mock_map_rows.assert_called_once_with(raw_rows)
 
 
+class BaseTestView:
+    """Small base class for testing response mixin behavior."""
+
+    def finalize_response(self, _request, response, *_args, **_kwargs):
+        return response
+
+
+class InsightsDataSourceTestView(InsightsDataSourceResponseMixin, BaseTestView):
+    """Test view using the Snowflake data source response mixin."""
+
+
+class InsightsSnowflakeResponseHeaderTests(SimpleTestCase):
+    """Cover shared response header helpers."""
+
+    def test_finalize_response_adds_data_source_header(self):
+        view = InsightsDataSourceTestView()
+        view.set_insights_data_source_snowflake()
+
+        response = view.finalize_response(Mock(), Response({}))
+
+        self.assertEqual(response[DATA_SOURCE_HEADER], DATA_SOURCE_SNOWFLAKE)
+
+    def test_finalize_response_skips_header_when_source_is_not_set(self):
+        view = InsightsDataSourceTestView()
+
+        response = view.finalize_response(Mock(), Response({}))
+
+        self.assertNotIn(DATA_SOURCE_HEADER, response)
+
+
 class InsightsSnowflakeToggleTests(SimpleTestCase):
     """Cover endpoint Waffle flag wrapper."""
 
     @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
-    def test_is_course_activity_snowflake_enabled_uses_endpoint_flag(self, mock_flag_is_active):
+    def test_is_insights_snowflake_enabled_uses_global_flag(self, mock_flag_is_active):
+        request = Mock()
+        mock_flag_is_active.return_value = True
+
+        self.assertTrue(is_insights_snowflake_enabled(request))
+
+        mock_flag_is_active.assert_called_once_with(request, INSIGHTS_SNOWFLAKE_FLAG)
+
+    @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
+    def test_is_course_activity_snowflake_enabled_uses_global_flag(self, mock_flag_is_active):
         request = Mock()
         mock_flag_is_active.return_value = True
 
         self.assertTrue(is_course_activity_snowflake_enabled(request))
 
-        mock_flag_is_active.assert_called_once_with(request, COURSE_ACTIVITY_SNOWFLAKE_FLAG)
+        mock_flag_is_active.assert_called_once_with(request, INSIGHTS_SNOWFLAKE_FLAG)
+
+    @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
+    def test_is_course_activity_snowflake_enabled_uses_endpoint_flag(self, mock_flag_is_active):
+        request = Mock()
+        mock_flag_is_active.side_effect = [False, True]
+
+        self.assertTrue(is_course_activity_snowflake_enabled(request))
+
+        self.assertEqual(mock_flag_is_active.call_count, 2)
+        self.assertEqual(mock_flag_is_active.call_args_list[0].args, (request, INSIGHTS_SNOWFLAKE_FLAG))
+        self.assertEqual(mock_flag_is_active.call_args_list[1].args, (request, COURSE_ACTIVITY_SNOWFLAKE_FLAG))
+
+    @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
+    def test_is_course_activity_snowflake_enabled_returns_false_when_flags_disabled(self, mock_flag_is_active):
+        request = Mock()
+        mock_flag_is_active.return_value = False
+
+        self.assertFalse(is_course_activity_snowflake_enabled(request))
+
+        self.assertEqual(mock_flag_is_active.call_count, 2)
+        self.assertEqual(mock_flag_is_active.call_args_list[0].args, (request, INSIGHTS_SNOWFLAKE_FLAG))
+        self.assertEqual(mock_flag_is_active.call_args_list[1].args, (request, COURSE_ACTIVITY_SNOWFLAKE_FLAG))
