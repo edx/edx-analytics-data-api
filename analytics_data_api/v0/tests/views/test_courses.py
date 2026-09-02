@@ -180,7 +180,7 @@ class CourseEnrollmentViewTestCaseMixin(CourseViewTestCaseMixin):
     @ddt.data(*CourseSamples.course_ids)
     def test_get_with_intervals(self, course_id):
         self.generate_data(course_id)
-        expected = self.format_as_response(*self.model.objects.filter(date=self.date))
+        expected = self.format_as_response(*self.model.objects.filter(course_id=course_id, date=self.date))
         self.assertIntervalFilteringWorks(expected, course_id, self.date, self.date + datetime.timedelta(days=1))
 
     def assertSnowflakeResponse(self, course_id, path, view_class, snowflake_data, expected):
