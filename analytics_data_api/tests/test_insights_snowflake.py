@@ -178,6 +178,28 @@ class InsightsSnowflakeEnrollmentQueryTests(SimpleTestCase):
         })
 
     @patch('analytics_data_api.insights_snowflake.queries.enrollment.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.enrollment.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY')
+    )
+    def test_get_course_enrollment_daily_rows_accepts_date_objects(self, mock_fetch_all):
+        start_date = datetime.date(2014, 1, 1)
+        end_date = datetime.date(2014, 1, 8)
+
+        get_course_enrollment_daily_rows(
+            'course-v1:edX+DemoX+Demo_Course',
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        _sql, params = mock_fetch_all.call_args[0]
+        self.assertEqual(params, {
+            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            'start_date': start_date,
+            'end_date': end_date,
+        })
+
+    @patch('analytics_data_api.insights_snowflake.queries.enrollment.fetch_all')
     @patch('analytics_data_api.insights_snowflake.queries.enrollment.get_qualified_table_name')
     def test_enrollment_query_functions_use_expected_tables(self, mock_get_table_name, _mock_fetch_all):
         mock_get_table_name.return_value = 'PROD.INSIGHTS.ENROLLMENT_TABLE'
