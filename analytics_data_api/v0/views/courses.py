@@ -15,8 +15,18 @@ from rest_framework.views import APIView
 
 from analytics_data_api.constants import enrollment_modes
 from analytics_data_api.insights_snowflake.response_headers import InsightsDataSourceResponseMixin
-from analytics_data_api.insights_snowflake.service import get_course_activity_weekly
-from analytics_data_api.insights_snowflake.toggles import is_course_activity_snowflake_enabled
+from analytics_data_api.insights_snowflake.service import (
+    get_course_activity_weekly,
+    get_course_enrollment,
+    get_course_enrollment_education,
+    get_course_enrollment_gender,
+    get_course_enrollment_location,
+    get_course_enrollment_mode,
+)
+from analytics_data_api.insights_snowflake.toggles import (
+    is_course_activity_snowflake_enabled,
+    is_insights_snowflake_enabled,
+)
 from analytics_data_api.utils import dictfetchall, get_course_report_download_details
 from analytics_data_api.v0 import models, serializers
 from analytics_data_api.v0.exceptions import ReportFileNotFoundError
@@ -289,6 +299,34 @@ class BaseCourseEnrollmentView(BaseCourseView):
         return queryset
 
 
+class SnowflakeCourseEnrollmentMixin(InsightsDataSourceResponseMixin):
+    """Route migrated enrollment endpoints through Snowflake when the global flag is enabled."""
+
+    snowflake_service_function = None
+
+    def get_snowflake_queryset(self):
+        """Return the Snowflake-backed queryset replacement for this endpoint."""
+        if self.snowflake_service_function is None:
+            raise NotImplementedError
+
+        data = self.snowflake_service_function(self.course_id, self.start_date, self.end_date)
+        if data:
+            return data
+        raise Http404
+
+    def get_aurora_queryset(self):
+        """Return the existing Aurora queryset for this endpoint."""
+        return super().get_queryset()
+
+    def get_queryset(self):
+        if is_insights_snowflake_enabled(self.request):
+            self.set_insights_data_source_snowflake()
+            return self.get_snowflake_queryset()
+
+        self.set_insights_data_source_aurora()
+        return self.get_aurora_queryset()
+
+
 class CourseEnrollmentByBirthYearView(BaseCourseEnrollmentView):
     """
     Get the number of enrolled users by birth year.
@@ -329,7 +367,7 @@ class CourseEnrollmentByBirthYearView(BaseCourseEnrollmentView):
     model = models.CourseEnrollmentByBirthYear
 
 
-class CourseEnrollmentByEducationView(BaseCourseEnrollmentView):
+class CourseEnrollmentByEducationView(SnowflakeCourseEnrollmentMixin, BaseCourseEnrollmentView):
     """
     Get the number of enrolled users by education level.
 
@@ -368,9 +406,10 @@ class CourseEnrollmentByEducationView(BaseCourseEnrollmentView):
     slug = 'enrollment-education'
     serializer_class = serializers.CourseEnrollmentByEducationSerializer
     model = models.CourseEnrollmentByEducation
+    snowflake_service_function = staticmethod(get_course_enrollment_education)
 
 
-class CourseEnrollmentByGenderView(BaseCourseEnrollmentView):
+class CourseEnrollmentByGenderView(SnowflakeCourseEnrollmentMixin, BaseCourseEnrollmentView):
     """
     Get the number of enrolled users by gender.
 
@@ -408,9 +447,10 @@ class CourseEnrollmentByGenderView(BaseCourseEnrollmentView):
     slug = 'enrollment-gender'
     serializer_class = serializers.CourseEnrollmentByGenderSerializer
     model = models.CourseEnrollmentByGender
+    snowflake_service_function = staticmethod(get_course_enrollment_gender)
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
+    def get_aurora_queryset(self):
+        queryset = super().get_aurora_queryset()
         formatted_data = []
 
         items = queryset.all()
@@ -439,7 +479,7 @@ class CourseEnrollmentByGenderView(BaseCourseEnrollmentView):
         return formatted_data
 
 
-class CourseEnrollmentView(BaseCourseEnrollmentView):
+class CourseEnrollmentView(SnowflakeCourseEnrollmentMixin, BaseCourseEnrollmentView):
     """
     Get the number of enrolled users.
 
@@ -474,9 +514,10 @@ class CourseEnrollmentView(BaseCourseEnrollmentView):
     slug = 'enrollment'
     serializer_class = serializers.CourseEnrollmentDailySerializer
     model = models.CourseEnrollmentDaily
+    snowflake_service_function = staticmethod(get_course_enrollment)
 
 
-class CourseEnrollmentModeView(BaseCourseEnrollmentView):
+class CourseEnrollmentModeView(SnowflakeCourseEnrollmentMixin, BaseCourseEnrollmentView):
     """
     Get the number of enrolled users by enrollment mode.
 
@@ -516,9 +557,10 @@ class CourseEnrollmentModeView(BaseCourseEnrollmentView):
     slug = 'enrollment_mode'
     serializer_class = serializers.CourseEnrollmentModeDailySerializer
     model = models.CourseEnrollmentModeDaily
+    snowflake_service_function = staticmethod(get_course_enrollment_mode)
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
+    def get_aurora_queryset(self):
+        queryset = super().get_aurora_queryset()
         formatted_data = []
 
         items = queryset.all()
@@ -553,7 +595,7 @@ class CourseEnrollmentModeView(BaseCourseEnrollmentView):
 
 
 # pylint: disable=line-too-long
-class CourseEnrollmentByLocationView(BaseCourseEnrollmentView):
+class CourseEnrollmentByLocationView(SnowflakeCourseEnrollmentMixin, BaseCourseEnrollmentView):
     """
     Get the number of enrolled users by location.
 
@@ -599,10 +641,11 @@ class CourseEnrollmentByLocationView(BaseCourseEnrollmentView):
     slug = 'enrollment-location'
     serializer_class = serializers.CourseEnrollmentByCountrySerializer
     model = models.CourseEnrollmentByCountry
+    snowflake_service_function = staticmethod(get_course_enrollment_location)
 
-    def get_queryset(self):
+    def get_aurora_queryset(self):
         # Get all of the data from the database
-        queryset = super().get_queryset()
+        queryset = super().get_aurora_queryset()
         items = queryset.all()
 
         # Data must be sorted in order for groupby to work properly
