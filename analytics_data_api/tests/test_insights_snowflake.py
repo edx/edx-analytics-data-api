@@ -419,6 +419,42 @@ class InsightsSnowflakeEnrollmentMapperTests(SimpleTestCase):
         self.assertEqual(mapped_rows[1].country.alpha2, 'US')
         self.assertEqual(mapped_rows[1].count, 5)
 
+    def test_map_course_enrollment_location_rows_groups_unsorted_dates(self):
+        date = datetime.date(2014, 1, 1)
+        next_date = datetime.date(2014, 1, 2)
+        created = datetime.datetime(2014, 1, 3, tzinfo=datetime.timezone.utc)
+        rows = [
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': date,
+                'country_code': 'US',
+                'count': 3,
+                'created': created,
+            },
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': next_date,
+                'country_code': 'US',
+                'count': 4,
+                'created': created,
+            },
+            {
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'date': date,
+                'country_code': 'US',
+                'count': 5,
+                'created': created,
+            },
+        ]
+
+        mapped_rows = map_course_enrollment_location_rows(rows)
+
+        self.assertEqual(len(mapped_rows), 2)
+        self.assertEqual(mapped_rows[0].date, date)
+        self.assertEqual(mapped_rows[0].count, 8)
+        self.assertEqual(mapped_rows[1].date, next_date)
+        self.assertEqual(mapped_rows[1].count, 4)
+
 
 class InsightsSnowflakeServiceTests(SimpleTestCase):
     """Cover service orchestration without real Snowflake calls."""

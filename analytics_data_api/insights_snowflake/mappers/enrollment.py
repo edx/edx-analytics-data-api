@@ -127,7 +127,7 @@ def map_course_enrollment_location_rows(rows):
         )
         for row in rows or []
     ]
-    items = sorted(items, key=lambda item: '' if item.country.alpha2 is None else item.country.alpha2)
+    items = sorted(items, key=lambda item: (item.date, item.country.alpha2 or '', item.course_id))
     returned_items = []
 
     for key, group in groupby(items, lambda item: (item.date, item.country.alpha2, item.course_id)):
