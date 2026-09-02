@@ -503,8 +503,17 @@ class CourseEnrollmentViewTests(CourseEnrollmentViewTestCaseMixin, TestCaseWithA
 
     def test_get_uses_aurora_when_global_snowflake_flag_disabled(self):
         course_id = CourseSamples.course_ids[0]
-        self.generate_data(course_id)
-        expected = self.format_as_response(*self.get_latest_data(course_id))
+        latest_enrollment = self.model.objects.using(settings.ANALYTICS_DATABASE_V1).create(
+            course_id=course_id,
+            date=self.date,
+            count=203,
+        )
+        self.model.objects.using(settings.ANALYTICS_DATABASE_V1).create(
+            course_id=course_id,
+            date=self.date - datetime.timedelta(days=5),
+            count=203,
+        )
+        expected = self.format_as_response(latest_enrollment)
         mock_get_data = Mock()
 
         with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=False):
