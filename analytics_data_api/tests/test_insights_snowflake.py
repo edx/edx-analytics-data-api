@@ -22,7 +22,10 @@ from analytics_data_api.insights_snowflake.queries.activity import get_course_ac
 from analytics_data_api.insights_snowflake.queries.course_summaries import (
     COURSE_ENROLLMENT_DAILY_TABLE,
     COURSE_META_SUMMARY_ENROLLMENT_TABLE,
-    COURSE_PROGRAM_METADATA_TABLE as COURSE_SUMMARY_PROGRAM_METADATA_TABLE,
+)
+from analytics_data_api.insights_snowflake.queries.course_summaries import \
+    COURSE_PROGRAM_METADATA_TABLE as COURSE_SUMMARY_PROGRAM_METADATA_TABLE
+from analytics_data_api.insights_snowflake.queries.course_summaries import (
     get_course_recent_enrollment_rows,
     get_course_summary_program_rows,
     get_course_summary_rows,
