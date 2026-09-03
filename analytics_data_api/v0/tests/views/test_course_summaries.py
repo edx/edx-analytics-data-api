@@ -8,6 +8,7 @@ from django.utils import timezone
 from django_dynamic_fixture import G
 
 from analytics_data_api.constants import enrollment_modes
+from analytics_data_api.middleware import thread_data
 from analytics_data_api.tests.test_utils import set_databases
 from analytics_data_api.v0 import models, serializers
 from analytics_data_api.v0.tests.views import APIListViewTestMixin, CourseSamples, VerifyCourseIdMixin
@@ -33,11 +34,15 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
 
     def setUp(self):
         super().setUp()
+        if hasattr(thread_data, 'analyticsapi_database'):
+            del thread_data.analyticsapi_database
         self.now = timezone.now()
         self.maxDiff = None
 
     def tearDown(self):
         self.model.objects.all().delete()
+        if hasattr(thread_data, 'analyticsapi_database'):
+            del thread_data.analyticsapi_database
 
     def create_model(self, model_id, **kwargs):
         modes = kwargs.get('modes', [])
@@ -203,13 +208,11 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
         self.generate_data(programs=True)
         with self.assertNumQueries(4, using=settings.ANALYTICS_DATABASE):
             # The db query runs 4 times here because we do both a get and a post call to the server
-            with patch('analytics_data_api.v0.views.course_summaries.is_insights_snowflake_enabled',
-                       return_value=False):
-                response = self.validated_request(
-                    ids=filter_ids,
-                    exclude=self.always_exclude[:1],
-                    programs=['True']
-                )
+            response = self.validated_request(
+                ids=filter_ids,
+                exclude=self.always_exclude[:1],
+                programs=['True']
+            )
             self.assertEqual(response.status_code, 200)
             self.assertCountEqual(response.data, self.all_expected_results(ids=filter_ids, programs=True))
 
