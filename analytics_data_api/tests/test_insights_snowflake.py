@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from analytics_data_api.constants import country, enrollment_modes, genders
 from analytics_data_api.insights_snowflake.client import fetch_all, get_qualified_table_name
 from analytics_data_api.insights_snowflake.mappers.activity import map_course_activity_weekly_rows
+from analytics_data_api.insights_snowflake.mappers.course_summaries import map_course_summary_rows
 from analytics_data_api.insights_snowflake.mappers.enrollment import (
     map_course_enrollment_daily_rows,
     map_course_enrollment_education_rows,
@@ -16,7 +17,16 @@ from analytics_data_api.insights_snowflake.mappers.enrollment import (
     map_course_enrollment_location_rows,
     map_course_enrollment_mode_rows,
 )
+from analytics_data_api.insights_snowflake.mappers.programs import map_program_metadata_rows
 from analytics_data_api.insights_snowflake.queries.activity import get_course_activity_weekly_rows
+from analytics_data_api.insights_snowflake.queries.course_summaries import (
+    COURSE_ENROLLMENT_DAILY_TABLE,
+    COURSE_META_SUMMARY_ENROLLMENT_TABLE,
+    COURSE_PROGRAM_METADATA_TABLE as COURSE_SUMMARY_PROGRAM_METADATA_TABLE,
+    get_course_recent_enrollment_rows,
+    get_course_summary_program_rows,
+    get_course_summary_rows,
+)
 from analytics_data_api.insights_snowflake.queries.enrollment import (
     COURSE_ENROLLMENT_EDUCATION_LEVEL_CURRENT_TABLE,
     COURSE_ENROLLMENT_GENDER_DAILY_TABLE,
@@ -26,6 +36,10 @@ from analytics_data_api.insights_snowflake.queries.enrollment import (
     get_course_enrollment_gender_rows,
     get_course_enrollment_location_rows,
     get_course_enrollment_mode_rows,
+)
+from analytics_data_api.insights_snowflake.queries.programs import (
+    COURSE_PROGRAM_METADATA_TABLE,
+    get_program_metadata_rows,
 )
 from analytics_data_api.insights_snowflake.response_headers import (
     DATA_SOURCE_HEADER,
@@ -39,6 +53,8 @@ from analytics_data_api.insights_snowflake.service import (
     get_course_enrollment_gender,
     get_course_enrollment_location,
     get_course_enrollment_mode,
+    get_course_summaries,
+    get_program_metadata,
 )
 from analytics_data_api.insights_snowflake.toggles import (
     COURSE_ACTIVITY_SNOWFLAKE_FLAG,
@@ -221,6 +237,121 @@ class InsightsSnowflakeEnrollmentQueryTests(SimpleTestCase):
             sql, params = _mock_fetch_all.call_args[0]
             self.assertIn(expected_column, sql)
             self.assertEqual(params, {'course_id': course_id})
+
+
+class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
+    """Cover course summary query construction with mocked Snowflake execution."""
+
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.course_summaries.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.COURSE_META_SUMMARY_ENROLLMENT')
+    )
+    def test_get_course_summary_rows_uses_expected_table_without_ids(self, mock_fetch_all):
+        mock_fetch_all.return_value = [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}]
+
+        rows = get_course_summary_rows()
+
+        self.assertEqual(rows, [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}])
+        sql, params = mock_fetch_all.call_args[0]
+        self.assertIn('FROM PROD.INSIGHTS.COURSE_META_SUMMARY_ENROLLMENT', sql)
+        self.assertNotIn('WHERE course_id IN', sql)
+        self.assertEqual(params, {})
+
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.get_qualified_table_name')
+    def test_course_summary_query_functions_use_expected_tables(self, mock_get_table_name, _mock_fetch_all):
+        mock_get_table_name.return_value = 'PROD.INSIGHTS.COURSE_SUMMARY_TABLE'
+        course_ids = ['course-v1:edX+DemoX+Demo_Course', 'course-v1:edX+DemoX+Demo_2014']
+
+        query_functions = [
+            (get_course_summary_rows, COURSE_META_SUMMARY_ENROLLMENT_TABLE),
+            (get_course_summary_program_rows, COURSE_SUMMARY_PROGRAM_METADATA_TABLE),
+        ]
+
+        for query_function, table in query_functions:
+            mock_get_table_name.reset_mock()
+            _mock_fetch_all.reset_mock()
+
+            query_function(course_ids=course_ids)
+
+            mock_get_table_name.assert_called_once_with(table)
+            sql, params = _mock_fetch_all.call_args[0]
+            self.assertIn('course_id IN (%(course_id_0)s, %(course_id_1)s)', sql)
+            self.assertEqual(params, {
+                'course_id_0': course_ids[0],
+                'course_id_1': course_ids[1],
+            })
+
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.course_summaries.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY')
+    )
+    def test_get_course_recent_enrollment_rows_accepts_datetime_recent_date(self, mock_fetch_all):
+        recent_date = datetime.datetime(2014, 1, 1, tzinfo=datetime.timezone.utc)
+
+        get_course_recent_enrollment_rows(
+            course_ids=['course-v1:edX+DemoX+Demo_Course'],
+            recent_date=recent_date,
+        )
+
+        sql, params = mock_fetch_all.call_args[0]
+        self.assertIn('FROM PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY', sql)
+        self.assertIn('AND course_id IN (%(course_id_0)s)', sql)
+        self.assertEqual(params, {
+            'recent_date': recent_date.date(),
+            'course_id_0': 'course-v1:edX+DemoX+Demo_Course',
+        })
+
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.get_qualified_table_name')
+    def test_get_course_recent_enrollment_rows_uses_expected_table(self, mock_get_table_name, _mock_fetch_all):
+        mock_get_table_name.return_value = 'PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY'
+        recent_date = datetime.date(2014, 1, 1)
+
+        get_course_recent_enrollment_rows(recent_date=recent_date)
+
+        mock_get_table_name.assert_called_once_with(COURSE_ENROLLMENT_DAILY_TABLE)
+        sql, params = _mock_fetch_all.call_args[0]
+        self.assertNotIn('AND course_id IN', sql)
+        self.assertEqual(params, {'recent_date': recent_date})
+
+
+class InsightsSnowflakeProgramQueryTests(SimpleTestCase):
+    """Cover program metadata query construction with mocked Snowflake execution."""
+
+    @patch('analytics_data_api.insights_snowflake.queries.programs.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.programs.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.COURSE_PROGRAM_METADATA')
+    )
+    def test_get_program_metadata_rows_uses_expected_table_without_ids(self, mock_fetch_all):
+        mock_fetch_all.return_value = [{'program_id': 'program-1'}]
+
+        rows = get_program_metadata_rows()
+
+        self.assertEqual(rows, [{'program_id': 'program-1'}])
+        sql, params = mock_fetch_all.call_args[0]
+        self.assertIn('FROM PROD.INSIGHTS.COURSE_PROGRAM_METADATA', sql)
+        self.assertNotIn('WHERE program_id IN', sql)
+        self.assertEqual(params, {})
+
+    @patch('analytics_data_api.insights_snowflake.queries.programs.fetch_all')
+    @patch('analytics_data_api.insights_snowflake.queries.programs.get_qualified_table_name')
+    def test_get_program_metadata_rows_filters_program_ids(self, mock_get_table_name, _mock_fetch_all):
+        mock_get_table_name.return_value = 'PROD.INSIGHTS.COURSE_PROGRAM_METADATA'
+        program_ids = ['program-1', 'program-2']
+
+        get_program_metadata_rows(program_ids=program_ids)
+
+        mock_get_table_name.assert_called_once_with(COURSE_PROGRAM_METADATA_TABLE)
+        sql, params = _mock_fetch_all.call_args[0]
+        self.assertIn('WHERE program_id IN (%(program_id_0)s, %(program_id_1)s)', sql)
+        self.assertEqual(params, {
+            'program_id_0': program_ids[0],
+            'program_id_1': program_ids[1],
+        })
 
 
 class InsightsSnowflakeActivityMapperTests(SimpleTestCase):
@@ -456,6 +587,114 @@ class InsightsSnowflakeEnrollmentMapperTests(SimpleTestCase):
         self.assertEqual(mapped_rows[1].count, 4)
 
 
+class InsightsSnowflakeProgramMapperTests(SimpleTestCase):
+    """Cover Snowflake program rows mapping into the existing API shape."""
+
+    def test_map_program_metadata_rows_groups_courses_and_accepts_uppercase_keys(self):
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        later_created = datetime.datetime(2014, 1, 3, tzinfo=datetime.timezone.utc)
+        rows = [
+            {
+                'PROGRAM_ID': 'program-1',
+                'PROGRAM_TYPE': 'Demo',
+                'PROGRAM_TITLE': 'Test',
+                'COURSE_ID': 'course-v1:edX+DemoX+Demo_2014',
+                'CREATED': created,
+            },
+            {
+                'PROGRAM_ID': 'program-1',
+                'PROGRAM_TYPE': 'Demo',
+                'PROGRAM_TITLE': 'Test',
+                'COURSE_ID': 'course-v1:edX+DemoX+Demo_Course',
+                'CREATED': later_created,
+            },
+        ]
+
+        self.assertEqual(map_program_metadata_rows(rows), [{
+            'program_id': 'program-1',
+            'program_type': 'Demo',
+            'program_title': 'Test',
+            'created': later_created,
+            'course_ids': [
+                'course-v1:edX+DemoX+Demo_2014',
+                'course-v1:edX+DemoX+Demo_Course',
+            ],
+        }])
+
+
+class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
+    """Cover Snowflake course summary rows mapping into the existing API shape."""
+
+    def test_map_course_summary_rows_merges_modes_programs_and_recent_counts(self):
+        course_id = 'course-v1:edX+DemoX+Demo_Course'
+        start_time = datetime.datetime(2016, 10, 11, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2016, 12, 18, tzinfo=datetime.timezone.utc)
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        later_created = datetime.datetime(2014, 1, 3, tzinfo=datetime.timezone.utc)
+        summary_rows = [
+            {
+                'COURSE_ID': course_id,
+                'CATALOG_COURSE_TITLE': 'Title',
+                'CATALOG_COURSE': 'Catalog',
+                'START_TIME': start_time,
+                'END_TIME': end_time,
+                'PACING_TYPE': 'instructor',
+                'AVAILABILITY': 'Starting Soon',
+                'ENROLLMENT_MODE': enrollment_modes.PROFESSIONAL_NO_ID,
+                'COUNT': 3,
+                'CUMULATIVE_COUNT': 7,
+                'COUNT_CHANGE_7_DAYS': 1,
+                'PASSING_USERS': None,
+                'CREATED': created,
+            },
+            {
+                'COURSE_ID': course_id,
+                'CATALOG_COURSE_TITLE': 'Title',
+                'CATALOG_COURSE': 'Catalog',
+                'START_TIME': start_time,
+                'END_TIME': end_time,
+                'PACING_TYPE': 'instructor',
+                'AVAILABILITY': 'Starting Soon',
+                'ENROLLMENT_MODE': enrollment_modes.PROFESSIONAL,
+                'COUNT': 4,
+                'CUMULATIVE_COUNT': 8,
+                'COUNT_CHANGE_7_DAYS': 2,
+                'PASSING_USERS': 6,
+                'CREATED': later_created,
+            },
+        ]
+        program_rows = [{
+            'course_id': course_id,
+            'program_id': 'program-1',
+        }]
+        recent_rows = [{
+            'course_id': course_id,
+            'count': 2,
+        }]
+
+        mapped_rows = map_course_summary_rows(
+            summary_rows,
+            program_rows=program_rows,
+            recent_rows=recent_rows,
+            exclude=['passing_users'],
+        )
+
+        self.assertEqual(len(mapped_rows), 1)
+        summary = mapped_rows[0]
+        self.assertEqual(summary['course_id'], course_id)
+        self.assertEqual(summary['availability'], 'Upcoming')
+        self.assertEqual(summary['created'], later_created)
+        self.assertEqual(summary['count'], 7)
+        self.assertEqual(summary['cumulative_count'], 15)
+        self.assertEqual(summary['count_change_7_days'], 3)
+        self.assertEqual(summary['passing_users'], 6)
+        self.assertEqual(summary['recent_count_change'], 5)
+        self.assertEqual(summary['programs'], ['program-1'])
+        self.assertNotIn(enrollment_modes.PROFESSIONAL_NO_ID, summary['enrollment_modes'])
+        self.assertEqual(summary['enrollment_modes'][enrollment_modes.PROFESSIONAL]['count'], 7)
+        self.assertNotIn('passing_users', summary['enrollment_modes'][enrollment_modes.PROFESSIONAL])
+
+
 class InsightsSnowflakeServiceTests(SimpleTestCase):
     """Cover service orchestration without real Snowflake calls."""
 
@@ -545,6 +784,84 @@ class InsightsSnowflakeServiceTests(SimpleTestCase):
             'analytics_data_api.insights_snowflake.service.get_course_enrollment_location_rows',
             'analytics_data_api.insights_snowflake.service.map_course_enrollment_location_rows',
         )
+
+    @patch('analytics_data_api.insights_snowflake.service.map_program_metadata_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_program_metadata_rows')
+    def test_get_program_metadata_calls_query_and_mapper(self, mock_get_rows, mock_map_rows):
+        raw_rows = [{'program_id': 'program-1'}]
+        mapped_rows = [{'program_id': 'program-1', 'course_ids': ['course-v1:edX+DemoX+Demo_Course']}]
+        mock_get_rows.return_value = raw_rows
+        mock_map_rows.return_value = mapped_rows
+
+        self.assertEqual(get_program_metadata(program_ids=['program-1']), mapped_rows)
+
+        mock_get_rows.assert_called_once_with(program_ids=['program-1'])
+        mock_map_rows.assert_called_once_with(raw_rows)
+
+    @patch('analytics_data_api.insights_snowflake.service.map_course_summary_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_recent_enrollment_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_summary_program_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_summary_rows')
+    def test_get_course_summaries_calls_required_queries_and_mapper(
+            self,
+            mock_get_summary_rows,
+            mock_get_program_rows,
+            mock_get_recent_rows,
+            mock_map_rows,
+    ):
+        course_ids = ['course-v1:edX+DemoX+Demo_Course']
+        recent_date = datetime.date(2014, 1, 1)
+        summary_rows = [{'course_id': course_ids[0]}]
+        program_rows = [{'course_id': course_ids[0], 'program_id': 'program-1'}]
+        recent_rows = [{'course_id': course_ids[0], 'count': 3}]
+        mapped_rows = [{'course_id': course_ids[0], 'count': 4}]
+        mock_get_summary_rows.return_value = summary_rows
+        mock_get_program_rows.return_value = program_rows
+        mock_get_recent_rows.return_value = recent_rows
+        mock_map_rows.return_value = mapped_rows
+
+        self.assertEqual(
+            get_course_summaries(
+                course_ids=course_ids,
+                include_programs=True,
+                recent_date=recent_date,
+                exclude=['created'],
+            ),
+            mapped_rows,
+        )
+
+        mock_get_summary_rows.assert_called_once_with(course_ids=course_ids)
+        mock_get_program_rows.assert_called_once_with(course_ids=course_ids)
+        mock_get_recent_rows.assert_called_once_with(course_ids=course_ids, recent_date=recent_date)
+        mock_map_rows.assert_called_once_with(
+            summary_rows,
+            program_rows=program_rows,
+            recent_rows=recent_rows,
+            exclude=['created'],
+        )
+
+    @patch('analytics_data_api.insights_snowflake.service.map_course_summary_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_recent_enrollment_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_summary_program_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_summary_rows')
+    def test_get_course_summaries_skips_optional_queries(
+            self,
+            mock_get_summary_rows,
+            mock_get_program_rows,
+            mock_get_recent_rows,
+            mock_map_rows,
+    ):
+        summary_rows = [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}]
+        mapped_rows = [{'course_id': 'course-v1:edX+DemoX+Demo_Course', 'count': 4}]
+        mock_get_summary_rows.return_value = summary_rows
+        mock_map_rows.return_value = mapped_rows
+
+        self.assertEqual(get_course_summaries(), mapped_rows)
+
+        mock_get_summary_rows.assert_called_once_with(course_ids=None)
+        mock_get_program_rows.assert_not_called()
+        mock_get_recent_rows.assert_not_called()
+        mock_map_rows.assert_called_once_with(summary_rows, program_rows=None, recent_rows=None, exclude=None)
 
 
 class BaseTestView:

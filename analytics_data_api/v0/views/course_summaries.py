@@ -3,15 +3,18 @@ from functools import reduce as functools_reduce
 from itertools import groupby
 
 from django.db.models import Q
-from django.http import HttpResponseBadRequest
+from django.http import Http404, HttpResponseBadRequest
 
 from analytics_data_api.constants import enrollment_modes
+from analytics_data_api.insights_snowflake.response_headers import InsightsDataSourceResponseMixin
+from analytics_data_api.insights_snowflake.service import get_course_summaries
+from analytics_data_api.insights_snowflake.toggles import is_insights_snowflake_enabled
 from analytics_data_api.v0 import models, serializers
 from analytics_data_api.v0.views import APIListView
 from analytics_data_api.v0.views.utils import split_query_argument, validate_course_id
 
 
-class CourseSummariesView(APIListView):
+class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
     """
     Returns summary information for courses.
 
@@ -243,3 +246,25 @@ class CourseSummariesView(APIListView):
 
     def get_query(self):
         return functools_reduce(lambda q, item_id: q | Q(course_id=item_id), self.ids, Q())
+
+    def get_snowflake_queryset(self):
+        """Return Snowflake-backed course summary data."""
+        fetch_recents = self.recent_date and 'recent_count_change' not in self.exclude
+        fetch_programs = self.exclude == [] or (self.exclude and 'programs' not in self.exclude)
+        data = get_course_summaries(
+            course_ids=self.ids,
+            include_programs=fetch_programs,
+            recent_date=self.recent_date if fetch_recents else None,
+            exclude=self.exclude,
+        )
+        if data:
+            return data
+        raise Http404
+
+    def get_queryset(self):
+        if is_insights_snowflake_enabled(self.request):
+            self.set_insights_data_source_snowflake()
+            return self.get_snowflake_queryset()
+
+        self.set_insights_data_source_aurora()
+        return super().get_queryset()

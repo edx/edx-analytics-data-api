@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import patch
 
 import ddt
 import pytz
@@ -112,6 +113,17 @@ class CourseSummariesViewTests(VerifyCourseIdMixin, TestCaseWithAuthentication, 
         })
         if programs:
             summary['programs'] = [CourseSamples.program_ids[0]]
+        return summary
+
+    def snowflake_summary(self, course_id, programs=False, recent_count_change=None):
+        """Expected Snowflake summary data before DRF serializer formatting."""
+        summary = self.expected_result(course_id, programs=programs, recent_count_change=recent_count_change)
+        summary.update({
+            'start_time': datetime.datetime(2016, 10, 11, tzinfo=pytz.utc),
+            'end_time': datetime.datetime(2016, 12, 18, tzinfo=pytz.utc),
+        })
+        summary.pop('start_date')
+        summary.pop('end_date')
         return summary
 
     def all_expected_results(self,  # pylint: disable=arguments-differ
@@ -255,3 +267,68 @@ class CourseSummariesViewTests(VerifyCourseIdMixin, TestCaseWithAuthentication, 
         responseBeforeDate = self.validated_request(exclude=self.always_exclude, recent_date=before)
         self.assertEqual(responseBeforeDate.status_code, 200)
         self.assertCountEqual(responseBeforeDate.data, expectedBeforeDate)
+
+    def test_get_uses_aurora_when_global_snowflake_flag_disabled(self):
+        course_id = CourseSamples.course_ids[1]
+        self.generate_data(ids=[course_id])
+
+        with patch('analytics_data_api.v0.views.course_summaries.is_insights_snowflake_enabled', return_value=False):
+            with patch('analytics_data_api.v0.views.course_summaries.get_course_summaries') as mock_get_summaries:
+                response = self.authenticated_get(
+                    f'/api/v0/course_summaries/?course_ids={course_id}&exclude=created'
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.expected_result(course_id)])
+        self.assertEqual(response['X-Insights-Data-Source'], 'aurora')
+        mock_get_summaries.assert_not_called()
+
+    def test_get_uses_snowflake_service_when_global_flag_enabled(self):
+        course_id = CourseSamples.course_ids[1]
+        snowflake_data = [self.snowflake_summary(course_id)]
+
+        with patch('analytics_data_api.v0.views.course_summaries.is_insights_snowflake_enabled', return_value=True):
+            with patch(
+                    'analytics_data_api.v0.views.course_summaries.get_course_summaries',
+                    return_value=snowflake_data,
+            ) as mock_get_summaries:
+                response = self.authenticated_get(
+                    f'/api/v1/course_summaries/?course_ids={course_id}&exclude=created'
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.expected_result(course_id)])
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
+        mock_get_summaries.assert_called_once_with(
+            course_ids=[course_id],
+            include_programs=False,
+            recent_date=None,
+            exclude=['programs', 'created'],
+        )
+
+    def test_post_uses_snowflake_service_with_programs_and_recent_date(self):
+        course_id = CourseSamples.course_ids[1]
+        recent = (datetime.datetime.today() - datetime.timedelta(5)).strftime('%Y-%m-%d')
+        snowflake_data = [self.snowflake_summary(course_id, programs=True, recent_count_change=5)]
+
+        with patch('analytics_data_api.v0.views.course_summaries.is_insights_snowflake_enabled', return_value=True):
+            with patch(
+                    'analytics_data_api.v0.views.course_summaries.get_course_summaries',
+                    return_value=snowflake_data,
+            ) as mock_get_summaries:
+                response = self.authenticated_post('/api/v1/course_summaries/', data={
+                    'course_ids': [course_id],
+                    'exclude': ['created'],
+                    'programs': ['True'],
+                    'recent_date': [recent],
+                })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.expected_result(course_id, programs=True, recent_count_change=5)])
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
+
+        _args, kwargs = mock_get_summaries.call_args
+        self.assertEqual(kwargs['course_ids'], [course_id])
+        self.assertTrue(kwargs['include_programs'])
+        self.assertEqual(kwargs['recent_date'].strftime('%Y-%m-%d'), recent)
+        self.assertEqual(kwargs['exclude'], ['created'])
