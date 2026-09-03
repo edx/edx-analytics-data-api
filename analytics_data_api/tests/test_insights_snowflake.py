@@ -621,6 +621,36 @@ class InsightsSnowflakeProgramMapperTests(SimpleTestCase):
             ],
         }])
 
+    def test_map_program_metadata_rows_handles_null_sort_values(self):
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        rows = [
+            {
+                'program_id': 'program-1',
+                'program_type': 'Demo',
+                'program_title': 'Test',
+                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'created': created,
+            },
+            {
+                'program_id': 'program-1',
+                'program_type': 'Demo',
+                'program_title': 'Test',
+                'course_id': None,
+                'created': created,
+            },
+        ]
+
+        self.assertEqual(map_program_metadata_rows(rows), [{
+            'program_id': 'program-1',
+            'program_type': 'Demo',
+            'program_title': 'Test',
+            'created': created,
+            'course_ids': [
+                None,
+                'course-v1:edX+DemoX+Demo_Course',
+            ],
+        }])
+
 
 class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
     """Cover Snowflake course summary rows mapping into the existing API shape."""
@@ -693,6 +723,50 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
         self.assertNotIn(enrollment_modes.PROFESSIONAL_NO_ID, summary['enrollment_modes'])
         self.assertEqual(summary['enrollment_modes'][enrollment_modes.PROFESSIONAL]['count'], 7)
         self.assertNotIn('passing_users', summary['enrollment_modes'][enrollment_modes.PROFESSIONAL])
+
+    def test_map_course_summary_rows_handles_null_sort_values(self):
+        course_id = 'course-v1:edX+DemoX+Demo_Course'
+        start_time = datetime.datetime(2016, 10, 11, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2016, 12, 18, tzinfo=datetime.timezone.utc)
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        summary_rows = [
+            {
+                'course_id': course_id,
+                'catalog_course_title': 'Title',
+                'catalog_course': 'Catalog',
+                'start_time': start_time,
+                'end_time': end_time,
+                'pacing_type': 'instructor',
+                'availability': 'Current',
+                'enrollment_mode': enrollment_modes.PROFESSIONAL,
+                'count': 4,
+                'cumulative_count': 8,
+                'count_change_7_days': 2,
+                'passing_users': 6,
+                'created': created,
+            },
+            {
+                'course_id': course_id,
+                'catalog_course_title': 'Title',
+                'catalog_course': 'Catalog',
+                'start_time': start_time,
+                'end_time': end_time,
+                'pacing_type': 'instructor',
+                'availability': 'Current',
+                'enrollment_mode': None,
+                'count': 3,
+                'cumulative_count': 7,
+                'count_change_7_days': 1,
+                'passing_users': 0,
+                'created': created,
+            },
+        ]
+
+        mapped_rows = map_course_summary_rows(summary_rows)
+
+        self.assertEqual(len(mapped_rows), 1)
+        self.assertEqual(mapped_rows[0]['count'], 7)
+        self.assertEqual(mapped_rows[0]['enrollment_modes'][enrollment_modes.PROFESSIONAL]['count'], 4)
 
 
 class InsightsSnowflakeServiceTests(SimpleTestCase):

@@ -12,7 +12,13 @@ def _row_value(row, name):
 
 def map_program_metadata_rows(rows):
     """Group program metadata rows into one API item per program."""
-    rows = sorted(rows or [], key=lambda row: (_row_value(row, 'program_id'), _row_value(row, 'course_id')))
+    rows = sorted(
+        rows or [],
+        key=lambda row: (
+            _row_value(row, 'program_id') or '',
+            _row_value(row, 'course_id') or '',
+        ),
+    )
     programs = []
 
     for program_id, group in groupby(rows, lambda row: _row_value(row, 'program_id')):

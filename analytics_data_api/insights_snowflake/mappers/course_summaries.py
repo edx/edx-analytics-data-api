@@ -81,7 +81,10 @@ def map_course_summary_rows(summary_rows, program_rows=None, recent_rows=None, e
     """Group course summary rows into one API item per course."""
     rows = sorted(
         summary_rows or [],
-        key=lambda row: (_row_value(row, 'course_id'), _row_value(row, 'enrollment_mode')),
+        key=lambda row: (
+            _row_value(row, 'course_id') or '',
+            _row_value(row, 'enrollment_mode') or '',
+        ),
     )
     programs = _programs_by_course(program_rows) if program_rows is not None else None
     recent_counts = _recent_counts_by_course(recent_rows) if recent_rows is not None else None
