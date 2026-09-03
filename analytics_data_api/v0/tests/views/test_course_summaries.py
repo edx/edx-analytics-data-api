@@ -203,11 +203,13 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
         self.generate_data(programs=True)
         with self.assertNumQueries(4, using=settings.ANALYTICS_DATABASE):
             # The db query runs 4 times here because we do both a get and a post call to the server
-            response = self.validated_request(
-                ids=filter_ids,
-                exclude=self.always_exclude[:1],
-                programs=['True']
-            )
+            with patch('analytics_data_api.v0.views.course_summaries.is_insights_snowflake_enabled',
+                       return_value=False):
+                response = self.validated_request(
+                    ids=filter_ids,
+                    exclude=self.always_exclude[:1],
+                    programs=['True']
+                )
             self.assertEqual(response.status_code, 200)
             self.assertCountEqual(response.data, self.all_expected_results(ids=filter_ids, programs=True))
 
@@ -279,7 +281,7 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
         with patch('analytics_data_api.v0.views.course_summaries.is_insights_snowflake_enabled', return_value=False):
             with patch('analytics_data_api.v0.views.course_summaries.get_course_summaries') as mock_get_summaries:
                 response = self.authenticated_get(
-                    f'/api/v0/course_summaries/?course_ids={course_id}&exclude=created'
+                    self.path({self.ids_param: [course_id], 'exclude': ['created']})
                 )
 
         self.assertEqual(response.status_code, 200)
@@ -297,7 +299,7 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
                     return_value=snowflake_data,
             ) as mock_get_summaries:
                 response = self.authenticated_get(
-                    f'/api/v1/course_summaries/?course_ids={course_id}&exclude=created'
+                    self.path({self.ids_param: [course_id], 'exclude': ['created']}).replace('/api/v0/', '/api/v1/')
                 )
 
         self.assertEqual(response.status_code, 200)
