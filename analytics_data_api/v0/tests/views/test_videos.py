@@ -91,12 +91,12 @@ class VideoTimelineTests(TestCaseWithAuthentication):
             'created': created.strftime(settings.DATETIME_FORMAT),
         }]
 
-        with patch('analytics_data_api.v0.views.videos.is_insights_snowflake_enabled', return_value=True), \
-                patch(
+        with patch('analytics_data_api.v0.views.videos.is_insights_snowflake_enabled', return_value=True):
+            with patch(
                     'analytics_data_api.v0.views.videos.get_video_timeline',
                     return_value=snowflake_data,
-                ) as mock_get_timeline:
-            response = self.authenticated_get(f'/api/v1/videos/{video_id}/timeline/')
+            ) as mock_get_timeline:
+                response = self.authenticated_get(f'/api/v1/videos/{video_id}/timeline/')
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, expected)
@@ -106,12 +106,12 @@ class VideoTimelineTests(TestCaseWithAuthentication):
     def test_get_returns_404_when_snowflake_service_returns_no_data(self):
         video_id = 'v1d30'
 
-        with patch('analytics_data_api.v0.views.videos.is_insights_snowflake_enabled', return_value=True), \
-                patch(
+        with patch('analytics_data_api.v0.views.videos.is_insights_snowflake_enabled', return_value=True):
+            with patch(
                     'analytics_data_api.v0.views.videos.get_video_timeline',
                     return_value=[],
-                ) as mock_get_timeline:
-            response = self.authenticated_get(f'/api/v1/videos/{video_id}/timeline/')
+            ) as mock_get_timeline:
+                response = self.authenticated_get(f'/api/v1/videos/{video_id}/timeline/')
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')

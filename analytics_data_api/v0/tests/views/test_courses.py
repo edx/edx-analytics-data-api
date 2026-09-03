@@ -1105,12 +1105,12 @@ class CourseVideosListViewTests(TestCaseWithAuthentication):
             'created': created.strftime(settings.DATETIME_FORMAT),
         }]
 
-        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True), \
-                patch(
+        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+            with patch(
                     'analytics_data_api.v0.views.courses.get_course_videos',
                     return_value=snowflake_data,
-                ) as mock_get_videos:
-            response = self.authenticated_get(f'/api/v1/courses/{course_id}/videos/')
+            ) as mock_get_videos:
+                response = self.authenticated_get(f'/api/v1/courses/{course_id}/videos/')
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, expected)
@@ -1120,12 +1120,12 @@ class CourseVideosListViewTests(TestCaseWithAuthentication):
     def test_get_returns_404_when_snowflake_service_returns_no_data(self):
         course_id = CourseSamples.course_ids[0]
 
-        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True), \
-                patch(
+        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+            with patch(
                     'analytics_data_api.v0.views.courses.get_course_videos',
                     return_value=[],
-                ) as mock_get_videos:
-            response = self.authenticated_get(f'/api/v1/courses/{course_id}/videos/')
+            ) as mock_get_videos:
+                response = self.authenticated_get(f'/api/v1/courses/{course_id}/videos/')
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
