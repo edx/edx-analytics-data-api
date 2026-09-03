@@ -16,7 +16,11 @@ from analyticsdataserver.tests.utils import TestCaseWithAuthentication
 
 @ddt.ddt
 @set_databases
-class CourseSummariesViewTests(VerifyCourseIdMixin, TestCaseWithAuthentication, APIListViewTestMixin):
+class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
+    VerifyCourseIdMixin,
+    TestCaseWithAuthentication,
+    APIListViewTestMixin,
+):
     model = models.CourseMetaSummaryEnrollment
     model_id = 'course_id'
     ids_param = 'course_ids'
