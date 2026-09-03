@@ -1016,8 +1016,7 @@ class CourseProblemsAndTagsListViewTests(TestCaseWithAuthentication):
 @set_databases
 class CourseVideosListViewTests(TestCaseWithAuthentication):
     def tearDown(self):
-        if hasattr(thread_data, 'analyticsapi_database'):
-            del thread_data.analyticsapi_database
+        thread_data.analyticsapi_database = getattr(settings, 'ANALYTICS_DATABASE', 'analytics')
         super().tearDown()
 
     def _get_data(self, course_id):
@@ -1082,7 +1081,7 @@ class CourseVideosListViewTests(TestCaseWithAuthentication):
 
         with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=False), \
                 patch('analytics_data_api.v0.views.courses.get_course_videos') as mock_get_videos:
-            response = self.authenticated_get(f'/api/v1/courses/{course_id}/videos/')
+            response = self._get_data(course_id)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['X-Insights-Data-Source'], 'aurora')

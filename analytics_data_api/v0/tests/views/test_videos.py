@@ -14,8 +14,7 @@ from analyticsdataserver.tests.utils import TestCaseWithAuthentication
 @set_databases
 class VideoTimelineTests(TestCaseWithAuthentication):
     def tearDown(self):
-        if hasattr(thread_data, 'analyticsapi_database'):
-            del thread_data.analyticsapi_database
+        thread_data.analyticsapi_database = getattr(settings, 'ANALYTICS_DATABASE', 'analytics')
         super().tearDown()
 
     def _get_data(self, video_id=None):
@@ -75,7 +74,7 @@ class VideoTimelineTests(TestCaseWithAuthentication):
 
         with patch('analytics_data_api.v0.views.videos.is_insights_snowflake_enabled', return_value=False), \
                 patch('analytics_data_api.v0.views.videos.get_video_timeline') as mock_get_timeline:
-            response = self.authenticated_get(f'/api/v1/videos/{video_id}/timeline/')
+            response = self._get_data(video_id)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['X-Insights-Data-Source'], 'aurora')
