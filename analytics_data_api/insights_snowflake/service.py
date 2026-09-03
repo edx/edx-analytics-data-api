@@ -1,6 +1,7 @@
 """Service functions for Snowflake-backed Insights endpoints."""
 
 from analytics_data_api.insights_snowflake.mappers.activity import map_course_activity_weekly_rows
+from analytics_data_api.insights_snowflake.mappers.course_summaries import map_course_summary_rows
 from analytics_data_api.insights_snowflake.mappers.enrollment import (
     map_course_enrollment_daily_rows,
     map_course_enrollment_education_rows,
@@ -8,7 +9,13 @@ from analytics_data_api.insights_snowflake.mappers.enrollment import (
     map_course_enrollment_location_rows,
     map_course_enrollment_mode_rows,
 )
+from analytics_data_api.insights_snowflake.mappers.programs import map_program_metadata_rows
 from analytics_data_api.insights_snowflake.queries.activity import get_course_activity_weekly_rows
+from analytics_data_api.insights_snowflake.queries.course_summaries import (
+    get_course_recent_enrollment_rows,
+    get_course_summary_program_rows,
+    get_course_summary_rows,
+)
 from analytics_data_api.insights_snowflake.queries.enrollment import (
     get_course_enrollment_daily_rows,
     get_course_enrollment_education_rows,
@@ -16,6 +23,7 @@ from analytics_data_api.insights_snowflake.queries.enrollment import (
     get_course_enrollment_location_rows,
     get_course_enrollment_mode_rows,
 )
+from analytics_data_api.insights_snowflake.queries.programs import get_program_metadata_rows
 
 
 def get_course_activity_weekly(course_id, start_date=None, end_date=None):
@@ -52,3 +60,26 @@ def get_course_enrollment_location(course_id, start_date=None, end_date=None):
     """Return course enrollment location counts in the existing API response shape."""
     rows = get_course_enrollment_location_rows(course_id, start_date=start_date, end_date=end_date)
     return map_course_enrollment_location_rows(rows)
+
+
+def get_program_metadata(program_ids=None):
+    """Return program metadata in the existing API response shape."""
+    rows = get_program_metadata_rows(program_ids=program_ids)
+    return map_program_metadata_rows(rows)
+
+
+def get_course_summaries(course_ids=None, include_programs=False, recent_date=None, exclude=None):
+    """Return course summaries in the existing API response shape."""
+    summary_rows = get_course_summary_rows(course_ids=course_ids)
+    program_rows = get_course_summary_program_rows(course_ids=course_ids) if include_programs else None
+    recent_rows = get_course_recent_enrollment_rows(
+        course_ids=course_ids,
+        recent_date=recent_date,
+    ) if recent_date else None
+
+    return map_course_summary_rows(
+        summary_rows,
+        program_rows=program_rows,
+        recent_rows=recent_rows,
+        exclude=exclude,
+    )

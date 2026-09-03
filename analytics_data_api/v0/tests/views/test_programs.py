@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import patch
 
 import ddt
 from django_dynamic_fixture import G
@@ -106,3 +107,38 @@ class ProgramsViewTests(TestCaseWithAuthentication, APIListViewTestMixin):
         response = self.validated_request(ids=program_ids, exclude=self.always_exclude)
         self.assertEqual(response.status_code, 200)
         self.assertCountEqual(response.data, self.all_expected_results(ids=program_ids, course_ids=course_ids))
+
+    def test_get_uses_aurora_when_global_snowflake_flag_disabled(self):
+        program_id = CourseSamples.program_ids[0]
+        self.generate_data(ids=[program_id])
+
+        with patch('analytics_data_api.v0.views.programs.is_insights_snowflake_enabled', return_value=False):
+            with patch('analytics_data_api.v0.views.programs.get_program_metadata') as mock_get_program_metadata:
+                response = self.authenticated_get(f'/api/v0/programs/?program_ids={program_id}&exclude=created')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.expected_result(program_id)])
+        self.assertEqual(response['X-Insights-Data-Source'], 'aurora')
+        mock_get_program_metadata.assert_not_called()
+
+    def test_get_uses_snowflake_service_when_global_flag_enabled(self):
+        program_id = CourseSamples.program_ids[0]
+        snowflake_data = [{
+            'program_id': program_id,
+            'program_type': 'Demo',
+            'program_title': 'Test',
+            'created': self.now,
+            'course_ids': [self.course_id],
+        }]
+
+        with patch('analytics_data_api.v0.views.programs.is_insights_snowflake_enabled', return_value=True):
+            with patch(
+                    'analytics_data_api.v0.views.programs.get_program_metadata',
+                    return_value=snowflake_data,
+            ) as mock_get_program_metadata:
+                response = self.authenticated_get(f'/api/v1/programs/?program_ids={program_id}&exclude=created')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.expected_result(program_id)])
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
+        mock_get_program_metadata.assert_called_once_with(program_ids=[program_id])

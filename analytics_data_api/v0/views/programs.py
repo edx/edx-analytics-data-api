@@ -1,12 +1,16 @@
 from functools import reduce as functools_reduce
 
 from django.db.models import Q
+from django.http import Http404
 
+from analytics_data_api.insights_snowflake.response_headers import InsightsDataSourceResponseMixin
+from analytics_data_api.insights_snowflake.service import get_program_metadata
+from analytics_data_api.insights_snowflake.toggles import is_insights_snowflake_enabled
 from analytics_data_api.v0 import models, serializers
 from analytics_data_api.v0.views import APIListView
 
 
-class ProgramsView(APIListView):
+class ProgramsView(InsightsDataSourceResponseMixin, APIListView):
     """
     Returns metadata information for programs.
 
@@ -63,3 +67,18 @@ class ProgramsView(APIListView):
 
     def get_query(self):
         return functools_reduce(lambda q, item_id: q | Q(program_id=item_id), self.ids, Q())
+
+    def get_snowflake_queryset(self):
+        """Return Snowflake-backed program metadata."""
+        data = get_program_metadata(program_ids=self.ids)
+        if data:
+            return data
+        raise Http404
+
+    def get_queryset(self):
+        if is_insights_snowflake_enabled(self.request):
+            self.set_insights_data_source_snowflake()
+            return self.get_snowflake_queryset()
+
+        self.set_insights_data_source_aurora()
+        return super().get_queryset()
