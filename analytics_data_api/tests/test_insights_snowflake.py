@@ -18,6 +18,7 @@ from analytics_data_api.insights_snowflake.mappers.enrollment import (
     map_course_enrollment_mode_rows,
 )
 from analytics_data_api.insights_snowflake.mappers.programs import map_program_metadata_rows
+from analytics_data_api.insights_snowflake.mappers.videos import map_course_video_rows, map_video_timeline_rows
 from analytics_data_api.insights_snowflake.queries.activity import get_course_activity_weekly_rows
 from analytics_data_api.insights_snowflake.queries.course_summaries import (
     COURSE_ENROLLMENT_DAILY_TABLE,
@@ -44,6 +45,12 @@ from analytics_data_api.insights_snowflake.queries.programs import (
     COURSE_PROGRAM_METADATA_TABLE,
     get_program_metadata_rows,
 )
+from analytics_data_api.insights_snowflake.queries.videos import (
+    VIDEO_TABLE,
+    VIDEO_TIMELINE_TABLE,
+    get_course_video_rows,
+    get_video_timeline_rows,
+)
 from analytics_data_api.insights_snowflake.response_headers import (
     DATA_SOURCE_HEADER,
     DATA_SOURCE_SNOWFLAKE,
@@ -57,7 +64,9 @@ from analytics_data_api.insights_snowflake.service import (
     get_course_enrollment_location,
     get_course_enrollment_mode,
     get_course_summaries,
+    get_course_videos,
     get_program_metadata,
+    get_video_timeline,
 )
 from analytics_data_api.insights_snowflake.toggles import (
     COURSE_ACTIVITY_SNOWFLAKE_FLAG,
@@ -355,6 +364,51 @@ class InsightsSnowflakeProgramQueryTests(SimpleTestCase):
             'program_id_0': program_ids[0],
             'program_id_1': program_ids[1],
         })
+
+
+class InsightsSnowflakeVideoQueryTests(SimpleTestCase):
+    """Cover video query construction with mocked Snowflake execution."""
+
+    @patch('analytics_data_api.insights_snowflake.queries.videos.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.videos.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.VIDEO')
+    )
+    def test_get_course_video_rows_uses_expected_table(self, mock_fetch_all):
+        mock_fetch_all.return_value = [{'pipeline_video_id': 'video-1'}]
+        course_id = 'course-v1:edX+DemoX+Demo_Course'
+
+        rows = get_course_video_rows(course_id)
+
+        self.assertEqual(rows, [{'pipeline_video_id': 'video-1'}])
+        sql, params = mock_fetch_all.call_args[0]
+        self.assertIn('FROM PROD.INSIGHTS.VIDEO', sql)
+        self.assertIn('courserun_key AS course_id', sql)
+        self.assertIn('WHERE courserun_key = %(course_id)s', sql)
+        self.assertEqual(params, {'course_id': course_id})
+
+    @patch('analytics_data_api.insights_snowflake.queries.videos.fetch_all')
+    @patch('analytics_data_api.insights_snowflake.queries.videos.get_qualified_table_name')
+    def test_video_query_functions_use_expected_tables(self, mock_get_table_name, _mock_fetch_all):
+        mock_get_table_name.return_value = 'PROD.INSIGHTS.VIDEO_TABLE'
+
+        get_course_video_rows('course-v1:edX+DemoX+Demo_Course')
+
+        mock_get_table_name.assert_called_once_with(VIDEO_TABLE)
+        sql, params = _mock_fetch_all.call_args[0]
+        self.assertIn('ORDER BY pipeline_video_id', sql)
+        self.assertEqual(params, {'course_id': 'course-v1:edX+DemoX+Demo_Course'})
+
+        mock_get_table_name.reset_mock()
+        _mock_fetch_all.reset_mock()
+
+        get_video_timeline_rows('video-1')
+
+        mock_get_table_name.assert_called_once_with(VIDEO_TIMELINE_TABLE)
+        sql, params = _mock_fetch_all.call_args[0]
+        self.assertIn('WHERE pipeline_video_id = %(video_id)s', sql)
+        self.assertIn('ORDER BY segment', sql)
+        self.assertEqual(params, {'video_id': 'video-1'})
 
 
 class InsightsSnowflakeActivityMapperTests(SimpleTestCase):
@@ -772,6 +826,48 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
         self.assertEqual(mapped_rows[0]['enrollment_modes'][enrollment_modes.PROFESSIONAL]['count'], 4)
 
 
+class InsightsSnowflakeVideoMapperTests(SimpleTestCase):
+    """Cover Snowflake video rows mapping into the existing API shapes."""
+
+    def test_map_course_video_rows_accepts_uppercase_snowflake_keys(self):
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        rows = [{
+            'PIPELINE_VIDEO_ID': 'video-1',
+            'ENCODED_MODULE_ID': 'i4x-test-video-1',
+            'DURATION': 100,
+            'SEGMENT_LENGTH': 5,
+            'USERS_AT_START': 50,
+            'USERS_AT_END': 10,
+            'CREATED': created,
+        }]
+
+        self.assertEqual(map_course_video_rows(rows), [{
+            'pipeline_video_id': 'video-1',
+            'encoded_module_id': 'i4x-test-video-1',
+            'duration': 100,
+            'segment_length': 5,
+            'users_at_start': 50,
+            'users_at_end': 10,
+            'created': created,
+        }])
+
+    def test_map_video_timeline_rows(self):
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        rows = [{
+            'segment': 0,
+            'num_users': 50,
+            'num_views': 100,
+            'created': created,
+        }]
+
+        self.assertEqual(map_video_timeline_rows(rows), [{
+            'segment': 0,
+            'num_users': 50,
+            'num_views': 100,
+            'created': created,
+        }])
+
+
 class InsightsSnowflakeServiceTests(SimpleTestCase):
     """Cover service orchestration without real Snowflake calls."""
 
@@ -861,6 +957,32 @@ class InsightsSnowflakeServiceTests(SimpleTestCase):
             'analytics_data_api.insights_snowflake.service.get_course_enrollment_location_rows',
             'analytics_data_api.insights_snowflake.service.map_course_enrollment_location_rows',
         )
+
+    @patch('analytics_data_api.insights_snowflake.service.map_course_video_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_video_rows')
+    def test_get_course_videos_calls_query_and_mapper(self, mock_get_rows, mock_map_rows):
+        raw_rows = [{'pipeline_video_id': 'video-1'}]
+        mapped_rows = [{'pipeline_video_id': 'video-1', 'duration': 100}]
+        mock_get_rows.return_value = raw_rows
+        mock_map_rows.return_value = mapped_rows
+
+        self.assertEqual(get_course_videos('course-v1:edX+DemoX+Demo_Course'), mapped_rows)
+
+        mock_get_rows.assert_called_once_with('course-v1:edX+DemoX+Demo_Course')
+        mock_map_rows.assert_called_once_with(raw_rows)
+
+    @patch('analytics_data_api.insights_snowflake.service.map_video_timeline_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_video_timeline_rows')
+    def test_get_video_timeline_calls_query_and_mapper(self, mock_get_rows, mock_map_rows):
+        raw_rows = [{'pipeline_video_id': 'video-1'}]
+        mapped_rows = [{'segment': 0, 'num_users': 50, 'num_views': 100}]
+        mock_get_rows.return_value = raw_rows
+        mock_map_rows.return_value = mapped_rows
+
+        self.assertEqual(get_video_timeline('video-1'), mapped_rows)
+
+        mock_get_rows.assert_called_once_with('video-1')
+        mock_map_rows.assert_called_once_with(raw_rows)
 
     @patch('analytics_data_api.insights_snowflake.service.map_program_metadata_rows')
     @patch('analytics_data_api.insights_snowflake.service.get_program_metadata_rows')
