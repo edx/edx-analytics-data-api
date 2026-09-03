@@ -5,6 +5,7 @@ from django.conf import settings
 from django.utils import timezone
 from django_dynamic_fixture import G
 
+from analytics_data_api.middleware import thread_data
 from analytics_data_api.tests.test_utils import set_databases
 from analytics_data_api.v0 import models
 from analyticsdataserver.tests.utils import TestCaseWithAuthentication
@@ -12,6 +13,11 @@ from analyticsdataserver.tests.utils import TestCaseWithAuthentication
 
 @set_databases
 class VideoTimelineTests(TestCaseWithAuthentication):
+    def tearDown(self):
+        if hasattr(thread_data, 'analyticsapi_database'):
+            del thread_data.analyticsapi_database
+        super().tearDown()
+
     def _get_data(self, video_id=None):
         return self.authenticated_get(f'/api/v0/videos/{video_id}/timeline')
 

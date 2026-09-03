@@ -1015,6 +1015,11 @@ class CourseProblemsAndTagsListViewTests(TestCaseWithAuthentication):
 @ddt.ddt
 @set_databases
 class CourseVideosListViewTests(TestCaseWithAuthentication):
+    def tearDown(self):
+        if hasattr(thread_data, 'analyticsapi_database'):
+            del thread_data.analyticsapi_database
+        super().tearDown()
+
     def _get_data(self, course_id):
         """
         Retrieve videos for a specified course.
