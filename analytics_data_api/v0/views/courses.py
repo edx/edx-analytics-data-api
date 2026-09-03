@@ -22,6 +22,7 @@ from analytics_data_api.insights_snowflake.service import (
     get_course_enrollment_gender,
     get_course_enrollment_location,
     get_course_enrollment_mode,
+    get_course_videos,
 )
 from analytics_data_api.insights_snowflake.toggles import (
     is_course_activity_snowflake_enabled,
@@ -810,7 +811,7 @@ class ProblemsAndTagsListView(BaseCourseView):
         return list(result.values())
 
 
-class VideosListView(BaseCourseView):
+class VideosListView(InsightsDataSourceResponseMixin, BaseCourseView):
     """
     Get data for the videos in a course.
 
@@ -835,6 +836,17 @@ class VideosListView(BaseCourseView):
     serializer_class = serializers.VideoSerializer
     allow_empty = False
     model = models.Video
+
+    def get_queryset(self):
+        if is_insights_snowflake_enabled(self.request):
+            self.set_insights_data_source_snowflake()
+            data = get_course_videos(self.course_id)
+            if data:
+                return data
+            raise Http404
+
+        self.set_insights_data_source_aurora()
+        return super().get_queryset()
 
     def apply_date_filtering(self, queryset):
         # no date filtering for videos -- just return the queryset

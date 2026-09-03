@@ -1015,6 +1015,10 @@ class CourseProblemsAndTagsListViewTests(TestCaseWithAuthentication):
 @ddt.ddt
 @set_databases
 class CourseVideosListViewTests(TestCaseWithAuthentication):
+    def tearDown(self):
+        thread_data.analyticsapi_database = getattr(settings, 'ANALYTICS_DATABASE', 'analytics')
+        super().tearDown()
+
     def _get_data(self, course_id):
         """
         Retrieve videos for a specified course.
@@ -1065,6 +1069,71 @@ class CourseVideosListViewTests(TestCaseWithAuthentication):
         response = self._get_data(course_id)
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.data, expected)
+
+    def test_get_uses_aurora_when_global_snowflake_flag_disabled(self):
+        course_id = CourseSamples.course_ids[0]
+        module_id = 'i4x-test-video-1'
+        video_id = 'v1d30'
+        created = timezone.now()
+        G(models.Video, course_id=course_id, encoded_module_id=module_id,
+          pipeline_video_id=video_id, duration=100, segment_length=1, users_at_start=50, users_at_end=10,
+          created=created)
+
+        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=False), \
+                patch('analytics_data_api.v0.views.courses.get_course_videos') as mock_get_videos:
+            response = self._get_data(course_id)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['X-Insights-Data-Source'], 'aurora')
+        mock_get_videos.assert_not_called()
+
+    def test_get_uses_snowflake_service_when_global_flag_enabled(self):
+        course_id = CourseSamples.course_ids[0]
+        created = timezone.now()
+        snowflake_data = [{
+            'pipeline_video_id': 'v1d30',
+            'encoded_module_id': 'i4x-test-video-1',
+            'duration': 100,
+            'segment_length': 1,
+            'users_at_start': 50,
+            'users_at_end': 10,
+            'created': created,
+        }]
+        expected = [{
+            'pipeline_video_id': 'v1d30',
+            'encoded_module_id': 'i4x-test-video-1',
+            'duration': 100,
+            'segment_length': 1,
+            'users_at_start': 50,
+            'users_at_end': 10,
+            'created': created.strftime(settings.DATETIME_FORMAT),
+        }]
+
+        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+            with patch(
+                    'analytics_data_api.v0.views.courses.get_course_videos',
+                    return_value=snowflake_data,
+            ) as mock_get_videos:
+                response = self.authenticated_get(f'/api/v1/courses/{course_id}/videos/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected)
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
+        mock_get_videos.assert_called_once_with(course_id)
+
+    def test_get_returns_404_when_snowflake_service_returns_no_data(self):
+        course_id = CourseSamples.course_ids[0]
+
+        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+            with patch(
+                    'analytics_data_api.v0.views.courses.get_course_videos',
+                    return_value=[],
+            ) as mock_get_videos:
+                response = self.authenticated_get(f'/api/v1/courses/{course_id}/videos/')
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
+        mock_get_videos.assert_called_once_with(course_id)
 
     def test_get_404(self):
         response = self._get_data('foo/bar/course')

@@ -10,6 +10,7 @@ from analytics_data_api.insights_snowflake.mappers.enrollment import (
     map_course_enrollment_mode_rows,
 )
 from analytics_data_api.insights_snowflake.mappers.programs import map_program_metadata_rows
+from analytics_data_api.insights_snowflake.mappers.videos import map_course_video_rows, map_video_timeline_rows
 from analytics_data_api.insights_snowflake.queries.activity import get_course_activity_weekly_rows
 from analytics_data_api.insights_snowflake.queries.course_summaries import (
     get_course_recent_enrollment_rows,
@@ -24,6 +25,7 @@ from analytics_data_api.insights_snowflake.queries.enrollment import (
     get_course_enrollment_mode_rows,
 )
 from analytics_data_api.insights_snowflake.queries.programs import get_program_metadata_rows
+from analytics_data_api.insights_snowflake.queries.videos import get_course_video_rows, get_video_timeline_rows
 
 
 def get_course_activity_weekly(course_id, start_date=None, end_date=None):
@@ -83,3 +85,15 @@ def get_course_summaries(course_ids=None, include_programs=False, recent_date=No
         recent_rows=recent_rows,
         exclude=exclude,
     )
+
+
+def get_course_videos(course_id):
+    """Return course videos in the existing API response shape."""
+    rows = get_course_video_rows(course_id)
+    return map_course_video_rows(rows)
+
+
+def get_video_timeline(video_id):
+    """Return video timeline metrics in the existing API response shape."""
+    rows = get_video_timeline_rows(video_id)
+    return map_video_timeline_rows(rows)
