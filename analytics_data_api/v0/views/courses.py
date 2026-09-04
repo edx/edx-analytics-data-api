@@ -7,6 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import connections, router
 from django.db.models import Max
 from django.http import Http404
+from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from opaque_keys.edx.keys import CourseKey
 from rest_framework import generics
@@ -765,7 +766,7 @@ GROUP BY module_id;
             # Rather than write custom SQL for the SQLite backend, simply parse the timestamp.
             created = row['created']
             if not isinstance(created, datetime.datetime):
-                row['created'] = datetime.datetime.strptime(created, '%Y-%m-%d %H:%M:%S')
+                row['created'] = parse_datetime(created) or datetime.datetime.strptime(created, '%Y-%m-%d %H:%M:%S')
 
         return rows
 
