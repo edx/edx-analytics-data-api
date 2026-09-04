@@ -682,6 +682,7 @@ class CourseEnrollmentByLocationView(SnowflakeCourseEnrollmentMixin, BaseCourseE
         # value to be iterable, not necessarily a queryset.
         return returned_items
 
+
 # pylint: disable=abstract-method
 class ProblemsListView(InsightsDataSourceResponseMixin, BaseCourseView):
     """
