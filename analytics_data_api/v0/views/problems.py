@@ -6,8 +6,12 @@ from collections import defaultdict
 from itertools import groupby
 
 from django.db import OperationalError
+from django.http import Http404
 from rest_framework import generics
 
+from analytics_data_api.insights_snowflake.response_headers import InsightsDataSourceResponseMixin
+from analytics_data_api.insights_snowflake.service import get_problem_answer_distribution
+from analytics_data_api.insights_snowflake.toggles import is_insights_snowflake_enabled
 from analytics_data_api.utils import matching_tuple
 from analytics_data_api.v0.models import (
     GradeDistribution,
@@ -24,7 +28,7 @@ from analytics_data_api.v0.serializers import (
 from analytics_data_api.v0.views.utils import raise_404_if_none
 
 
-class ProblemResponseAnswerDistributionView(generics.ListAPIView):
+class ProblemResponseAnswerDistributionView(InsightsDataSourceResponseMixin, generics.ListAPIView):
     """
     Get the distribution of student answers to a specific problem.
 
@@ -104,12 +108,22 @@ class ProblemResponseAnswerDistributionView(generics.ListAPIView):
         """Select all the answer distribution response having to do with this usage of the problem."""
         problem_id = self.kwargs.get('problem_id')
 
-        try:
-            queryset = list(ProblemResponseAnswerDistribution.objects.filter(module_id=problem_id).order_by('part_id'))
-        except OperationalError:
+        if is_insights_snowflake_enabled(self.request):
+            self.set_insights_data_source_snowflake()
             self.serializer_class = ConsolidatedFirstLastAnswerDistributionSerializer
-            queryset = list(ProblemFirstLastResponseAnswerDistribution.objects.filter(
-                module_id=problem_id).order_by('part_id'))
+            queryset = get_problem_answer_distribution(problem_id)
+            if not queryset:
+                raise Http404
+        else:
+            self.set_insights_data_source_aurora()
+            try:
+                queryset = list(
+                    ProblemResponseAnswerDistribution.objects.filter(module_id=problem_id).order_by('part_id')
+                )
+            except OperationalError:
+                self.serializer_class = ConsolidatedFirstLastAnswerDistributionSerializer
+                queryset = list(ProblemFirstLastResponseAnswerDistribution.objects.filter(
+                    module_id=problem_id).order_by('part_id'))
 
         consolidated_rows = []
 

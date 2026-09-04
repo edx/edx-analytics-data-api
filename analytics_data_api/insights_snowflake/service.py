@@ -9,6 +9,10 @@ from analytics_data_api.insights_snowflake.mappers.enrollment import (
     map_course_enrollment_location_rows,
     map_course_enrollment_mode_rows,
 )
+from analytics_data_api.insights_snowflake.mappers.performance import (
+    map_course_problem_rows,
+    map_problem_answer_distribution_rows,
+)
 from analytics_data_api.insights_snowflake.mappers.programs import map_program_metadata_rows
 from analytics_data_api.insights_snowflake.mappers.videos import map_course_video_rows, map_video_timeline_rows
 from analytics_data_api.insights_snowflake.queries.activity import get_course_activity_weekly_rows
@@ -23,6 +27,10 @@ from analytics_data_api.insights_snowflake.queries.enrollment import (
     get_course_enrollment_gender_rows,
     get_course_enrollment_location_rows,
     get_course_enrollment_mode_rows,
+)
+from analytics_data_api.insights_snowflake.queries.performance import (
+    get_course_problem_rows,
+    get_problem_answer_distribution_rows,
 )
 from analytics_data_api.insights_snowflake.queries.programs import get_program_metadata_rows
 from analytics_data_api.insights_snowflake.queries.videos import get_course_video_rows, get_video_timeline_rows
@@ -97,3 +105,15 @@ def get_video_timeline(video_id):
     """Return video timeline metrics in the existing API response shape."""
     rows = get_video_timeline_rows(video_id)
     return map_video_timeline_rows(rows)
+
+
+def get_course_problems(course_id):
+    """Return course problems in the existing API response shape."""
+    rows = get_course_problem_rows(course_id)
+    return map_course_problem_rows(rows)
+
+
+def get_problem_answer_distribution(problem_id):
+    """Return problem answer distribution rows in the existing API response shape."""
+    rows = get_problem_answer_distribution_rows(problem_id)
+    return map_problem_answer_distribution_rows(rows)

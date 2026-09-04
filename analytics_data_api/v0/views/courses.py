@@ -7,6 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import connections, router
 from django.db.models import Max
 from django.http import Http404
+from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from opaque_keys.edx.keys import CourseKey
 from rest_framework import generics
@@ -22,6 +23,7 @@ from analytics_data_api.insights_snowflake.service import (
     get_course_enrollment_gender,
     get_course_enrollment_location,
     get_course_enrollment_mode,
+    get_course_problems,
     get_course_videos,
 )
 from analytics_data_api.insights_snowflake.toggles import (
@@ -683,7 +685,7 @@ class CourseEnrollmentByLocationView(SnowflakeCourseEnrollmentMixin, BaseCourseE
 
 
 # pylint: disable=abstract-method
-class ProblemsListView(BaseCourseView):
+class ProblemsListView(InsightsDataSourceResponseMixin, BaseCourseView):
     """
     Get the problems.
 
@@ -705,6 +707,15 @@ class ProblemsListView(BaseCourseView):
 
     @raise_404_if_none
     def get_queryset(self):
+        if is_insights_snowflake_enabled(self.request):
+            self.set_insights_data_source_snowflake()
+            data = get_course_problems(self.course_id)
+            if data:
+                return data
+            raise Http404
+
+        self.set_insights_data_source_aurora()
+
         # last_response_count is the number of submissions for the problem part and must
         # be divided by the number of problem parts to get the problem submission rather
         # than the problem *part* submissions
@@ -755,7 +766,7 @@ GROUP BY module_id;
             # Rather than write custom SQL for the SQLite backend, simply parse the timestamp.
             created = row['created']
             if not isinstance(created, datetime.datetime):
-                row['created'] = datetime.datetime.strptime(created, '%Y-%m-%d %H:%M:%S')
+                row['created'] = parse_datetime(created) or datetime.datetime.strptime(created, '%Y-%m-%d %H:%M:%S')
 
         return rows
 

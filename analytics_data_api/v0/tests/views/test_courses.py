@@ -871,6 +871,10 @@ class CourseActivityWeeklyViewTests(CourseViewTestCaseMixin, TestCaseWithAuthent
 @ddt.ddt
 @set_databases
 class CourseProblemsListViewTests(TestCaseWithAuthentication):
+    def tearDown(self):
+        thread_data.analyticsapi_database = getattr(settings, 'ANALYTICS_DATABASE', 'analytics')
+        super().tearDown()
+
     def _get_data(self, course_id):
         """
         Retrieve data for the specified course.
@@ -922,6 +926,70 @@ class CourseProblemsListViewTests(TestCaseWithAuthentication):
         response = self._get_data(course_id)
         self.assertEqual(response.status_code, 200)
         self.assertListEqual([dict(d) for d in response.data], expected)
+
+    def test_get_uses_aurora_when_global_snowflake_flag_disabled(self):
+        course_id = CourseSamples.course_ids[0]
+        created = timezone.now()
+        G(
+            models.ProblemFirstLastResponseAnswerDistribution,
+            course_id=course_id,
+            module_id='i4x://test/problem/1',
+            correct=True,
+            last_response_count=100,
+            created=created,
+        )
+
+        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=False):
+            with patch('analytics_data_api.v0.views.courses.get_course_problems') as mock_get_problems:
+                response = self._get_data(course_id)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['X-Insights-Data-Source'], 'aurora')
+        mock_get_problems.assert_not_called()
+
+    def test_get_uses_snowflake_service_when_global_flag_enabled(self):
+        course_id = CourseSamples.course_ids[0]
+        created = timezone.now()
+        snowflake_data = [{
+            'module_id': 'i4x://test/problem/1',
+            'total_submissions': 150,
+            'correct_submissions': 50,
+            'part_ids': ['part-1', 'part-2'],
+            'created': created,
+        }]
+        expected = [{
+            'module_id': 'i4x://test/problem/1',
+            'total_submissions': 150,
+            'correct_submissions': 50,
+            'part_ids': ['part-1', 'part-2'],
+            'created': created.strftime(settings.DATETIME_FORMAT),
+        }]
+
+        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+            with patch(
+                    'analytics_data_api.v0.views.courses.get_course_problems',
+                    return_value=snowflake_data,
+            ) as mock_get_problems:
+                response = self.authenticated_get(f'/api/v1/courses/{course_id}/problems/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected)
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
+        mock_get_problems.assert_called_once_with(course_id)
+
+    def test_get_returns_404_when_snowflake_service_returns_no_data(self):
+        course_id = CourseSamples.course_ids[0]
+
+        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+            with patch(
+                    'analytics_data_api.v0.views.courses.get_course_problems',
+                    return_value=[],
+            ) as mock_get_problems:
+                response = self.authenticated_get(f'/api/v1/courses/{course_id}/problems/')
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
+        mock_get_problems.assert_called_once_with(course_id)
 
     def test_get_404(self):
         """

@@ -17,6 +17,10 @@ from analytics_data_api.insights_snowflake.mappers.enrollment import (
     map_course_enrollment_location_rows,
     map_course_enrollment_mode_rows,
 )
+from analytics_data_api.insights_snowflake.mappers.performance import (
+    map_course_problem_rows,
+    map_problem_answer_distribution_rows,
+)
 from analytics_data_api.insights_snowflake.mappers.programs import map_program_metadata_rows
 from analytics_data_api.insights_snowflake.mappers.videos import map_course_video_rows, map_video_timeline_rows
 from analytics_data_api.insights_snowflake.queries.activity import get_course_activity_weekly_rows
@@ -41,6 +45,11 @@ from analytics_data_api.insights_snowflake.queries.enrollment import (
     get_course_enrollment_location_rows,
     get_course_enrollment_mode_rows,
 )
+from analytics_data_api.insights_snowflake.queries.performance import (
+    PROBLEM_ANSWER_DISTRIBUTION_TABLE,
+    get_course_problem_rows,
+    get_problem_answer_distribution_rows,
+)
 from analytics_data_api.insights_snowflake.queries.programs import (
     COURSE_PROGRAM_METADATA_TABLE,
     get_program_metadata_rows,
@@ -63,8 +72,10 @@ from analytics_data_api.insights_snowflake.service import (
     get_course_enrollment_gender,
     get_course_enrollment_location,
     get_course_enrollment_mode,
+    get_course_problems,
     get_course_summaries,
     get_course_videos,
+    get_problem_answer_distribution,
     get_program_metadata,
     get_video_timeline,
 )
@@ -409,6 +420,45 @@ class InsightsSnowflakeVideoQueryTests(SimpleTestCase):
         self.assertIn('WHERE pipeline_video_id = %(video_id)s', sql)
         self.assertIn('ORDER BY segment', sql)
         self.assertEqual(params, {'video_id': 'video-1'})
+
+
+class InsightsSnowflakePerformanceQueryTests(SimpleTestCase):
+    """Cover performance query construction with mocked Snowflake execution."""
+
+    @patch('analytics_data_api.insights_snowflake.queries.performance.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.performance.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.PROBLEM_ANSWER_DISTRIBUTION')
+    )
+    def test_get_course_problem_rows_uses_expected_table(self, mock_fetch_all):
+        mock_fetch_all.return_value = [{'module_id': 'problem-1'}]
+        course_id = 'course-v1:edX+DemoX+Demo_Course'
+
+        rows = get_course_problem_rows(course_id)
+
+        self.assertEqual(rows, [{'module_id': 'problem-1'}])
+        sql, params = mock_fetch_all.call_args[0]
+        self.assertIn('FROM PROD.INSIGHTS.PROBLEM_ANSWER_DISTRIBUTION', sql)
+        self.assertIn('LISTAGG(DISTINCT part_id', sql)
+        self.assertIn('WHERE course_id = %(course_id)s', sql)
+        self.assertEqual(params, {'course_id': course_id})
+
+    @patch('analytics_data_api.insights_snowflake.queries.performance.fetch_all')
+    @patch('analytics_data_api.insights_snowflake.queries.performance.get_qualified_table_name')
+    def test_get_problem_answer_distribution_rows_uses_expected_table(self, mock_get_table_name, _mock_fetch_all):
+        mock_get_table_name.return_value = 'PROD.INSIGHTS.PROBLEM_ANSWER_DISTRIBUTION'
+        problem_id = 'i4x://edX/DemoX/problem/Test'
+
+        get_problem_answer_distribution_rows(problem_id)
+
+        mock_get_table_name.assert_called_once_with(PROBLEM_ANSWER_DISTRIBUTION_TABLE)
+        sql, params = _mock_fetch_all.call_args[0]
+        self.assertIn('answer_value_text', sql)
+        self.assertIn('first_response_count', sql)
+        self.assertIn('last_response_count', sql)
+        self.assertIn('WHERE module_id = %(problem_id)s', sql)
+        self.assertIn('ORDER BY part_id, value_id, variant', sql)
+        self.assertEqual(params, {'problem_id': problem_id})
 
 
 class InsightsSnowflakeActivityMapperTests(SimpleTestCase):
@@ -868,6 +918,62 @@ class InsightsSnowflakeVideoMapperTests(SimpleTestCase):
         }])
 
 
+class InsightsSnowflakePerformanceMapperTests(SimpleTestCase):
+    """Cover Snowflake performance row mapping into the existing API shapes."""
+
+    def test_map_course_problem_rows_accepts_uppercase_snowflake_keys(self):
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        rows = [{
+            'MODULE_ID': 'i4x://test/problem/1',
+            'TOTAL_SUBMISSIONS': 150,
+            'CORRECT_SUBMISSIONS': 50,
+            'PART_IDS': 'part-1,part-2',
+            'CREATED': created,
+        }]
+
+        self.assertEqual(map_course_problem_rows(rows), [{
+            'module_id': 'i4x://test/problem/1',
+            'total_submissions': 150,
+            'correct_submissions': 50,
+            'part_ids': ['part-1', 'part-2'],
+            'created': created,
+        }])
+
+    def test_map_problem_answer_distribution_rows_returns_first_last_model_instances(self):
+        created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
+        rows = [{
+            'COURSE_ID': 'course-v1:edX+DemoX+Demo_Course',
+            'MODULE_ID': 'i4x://test/problem/1',
+            'PART_ID': 'part-1',
+            'CORRECT': True,
+            'VALUE_ID': 'choice-1',
+            'ANSWER_VALUE_TEXT': 'Answer 1',
+            'VARIANT': 123,
+            'PROBLEM_DISPLAY_NAME': 'Test Problem',
+            'QUESTION_TEXT': 'Question Text',
+            'FIRST_RESPONSE_COUNT': 2,
+            'LAST_RESPONSE_COUNT': 3,
+            'CREATED': created,
+        }]
+
+        mapped_rows = map_problem_answer_distribution_rows(rows)
+
+        self.assertEqual(len(mapped_rows), 1)
+        mapped_row = mapped_rows[0]
+        self.assertEqual(mapped_row.course_id, 'course-v1:edX+DemoX+Demo_Course')
+        self.assertEqual(mapped_row.module_id, 'i4x://test/problem/1')
+        self.assertEqual(mapped_row.part_id, 'part-1')
+        self.assertTrue(mapped_row.correct)
+        self.assertEqual(mapped_row.value_id, 'choice-1')
+        self.assertEqual(mapped_row.answer_value, 'Answer 1')
+        self.assertEqual(mapped_row.variant, 123)
+        self.assertEqual(mapped_row.problem_display_name, 'Test Problem')
+        self.assertEqual(mapped_row.question_text, 'Question Text')
+        self.assertEqual(mapped_row.first_response_count, 2)
+        self.assertEqual(mapped_row.last_response_count, 3)
+        self.assertEqual(mapped_row.created, created)
+
+
 class InsightsSnowflakeServiceTests(SimpleTestCase):
     """Cover service orchestration without real Snowflake calls."""
 
@@ -982,6 +1088,32 @@ class InsightsSnowflakeServiceTests(SimpleTestCase):
         self.assertEqual(get_video_timeline('video-1'), mapped_rows)
 
         mock_get_rows.assert_called_once_with('video-1')
+        mock_map_rows.assert_called_once_with(raw_rows)
+
+    @patch('analytics_data_api.insights_snowflake.service.map_course_problem_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_problem_rows')
+    def test_get_course_problems_calls_query_and_mapper(self, mock_get_rows, mock_map_rows):
+        raw_rows = [{'module_id': 'problem-1'}]
+        mapped_rows = [{'module_id': 'problem-1', 'total_submissions': 10}]
+        mock_get_rows.return_value = raw_rows
+        mock_map_rows.return_value = mapped_rows
+
+        self.assertEqual(get_course_problems('course-v1:edX+DemoX+Demo_Course'), mapped_rows)
+
+        mock_get_rows.assert_called_once_with('course-v1:edX+DemoX+Demo_Course')
+        mock_map_rows.assert_called_once_with(raw_rows)
+
+    @patch('analytics_data_api.insights_snowflake.service.map_problem_answer_distribution_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_problem_answer_distribution_rows')
+    def test_get_problem_answer_distribution_calls_query_and_mapper(self, mock_get_rows, mock_map_rows):
+        raw_rows = [{'module_id': 'problem-1'}]
+        mapped_rows = [{'module_id': 'problem-1', 'last_response_count': 3}]
+        mock_get_rows.return_value = raw_rows
+        mock_map_rows.return_value = mapped_rows
+
+        self.assertEqual(get_problem_answer_distribution('problem-1'), mapped_rows)
+
+        mock_get_rows.assert_called_once_with('problem-1')
         mock_map_rows.assert_called_once_with(raw_rows)
 
     @patch('analytics_data_api.insights_snowflake.service.map_program_metadata_rows')
