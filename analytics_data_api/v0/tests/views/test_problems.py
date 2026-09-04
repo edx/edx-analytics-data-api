@@ -5,9 +5,12 @@
 # pylint: disable=no-member,no-value-for-parameter
 
 import json
+from unittest.mock import patch
 
+from django.conf import settings
 from django_dynamic_fixture import G
 
+from analytics_data_api.middleware import thread_data
 from analytics_data_api.tests.test_utils import set_databases
 from analytics_data_api.v0 import models
 from analytics_data_api.v0.serializers import (
@@ -22,6 +25,10 @@ from analyticsdataserver.tests.utils import TestCaseWithAuthentication
 class AnswerDistributionTests(TestCaseWithAuthentication):
     path = '/answer_distribution/'
     maxDiff = None
+
+    def tearDown(self):
+        thread_data.analyticsapi_database = getattr(settings, 'ANALYTICS_DATABASE', 'analytics')
+        super().tearDown()
 
     @classmethod
     def setUpClass(cls):
@@ -138,6 +145,78 @@ class AnswerDistributionTests(TestCaseWithAuthentication):
     def test_get_404(self):
         response = self.authenticated_get('/api/v0/problems/%s%s' % ("DOES-NOT-EXIST", self.path))
         self.assertEqual(response.status_code, 404)
+
+    def test_get_uses_aurora_when_global_snowflake_flag_disabled(self):
+        with patch('analytics_data_api.v0.views.problems.is_insights_snowflake_enabled', return_value=False):
+            with patch(
+                    'analytics_data_api.v0.views.problems.get_problem_answer_distribution',
+            ) as mock_get_answer_distribution:
+                response = self.authenticated_get('/api/v0/problems/%s%s' % (self.module_id2, self.path))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['X-Insights-Data-Source'], 'aurora')
+        mock_get_answer_distribution.assert_not_called()
+
+    def test_get_uses_snowflake_service_when_global_flag_enabled(self):
+        created = self.ad1.created
+        snowflake_data = [
+            models.ProblemFirstLastResponseAnswerDistribution(
+                course_id=self.course_id,
+                module_id=self.module_id1,
+                part_id=self.part_id,
+                correct=self.correct,
+                value_id=self.value_id1,
+                answer_value=self.answer_value,
+                problem_display_name=self.problem_display_name,
+                question_text=self.question_text,
+                variant=123,
+                first_response_count=1,
+                last_response_count=3,
+                created=created,
+            ),
+            models.ProblemFirstLastResponseAnswerDistribution(
+                course_id=self.course_id,
+                module_id=self.module_id1,
+                part_id=self.part_id,
+                correct=self.correct,
+                value_id=self.value_id1,
+                answer_value=self.answer_value,
+                problem_display_name=self.problem_display_name,
+                question_text=self.question_text,
+                variant=345,
+                first_response_count=0,
+                last_response_count=2,
+                created=created,
+            ),
+        ]
+
+        with patch('analytics_data_api.v0.views.problems.is_insights_snowflake_enabled', return_value=True):
+            with patch(
+                    'analytics_data_api.v0.views.problems.get_problem_answer_distribution',
+                    return_value=snowflake_data,
+            ) as mock_get_answer_distribution:
+                response = self.authenticated_get(f'/api/v1/problems/{self.module_id1}{self.path}')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['variant'], None)
+        self.assertTrue(response.data[0]['consolidated_variant'])
+        self.assertEqual(response.data[0]['first_response_count'], 1)
+        self.assertEqual(response.data[0]['last_response_count'], 5)
+        mock_get_answer_distribution.assert_called_once_with(self.module_id1)
+
+    def test_get_returns_404_when_snowflake_service_returns_no_data(self):
+        with patch('analytics_data_api.v0.views.problems.is_insights_snowflake_enabled', return_value=True):
+            with patch(
+                    'analytics_data_api.v0.views.problems.get_problem_answer_distribution',
+                    return_value=[],
+            ) as mock_get_answer_distribution:
+                response = self.authenticated_get(f'/api/v1/problems/{self.module_id1}{self.path}')
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
+        mock_get_answer_distribution.assert_called_once_with(self.module_id1)
 
 
 @set_databases

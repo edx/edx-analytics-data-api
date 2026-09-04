@@ -22,6 +22,7 @@ from analytics_data_api.insights_snowflake.service import (
     get_course_enrollment_gender,
     get_course_enrollment_location,
     get_course_enrollment_mode,
+    get_course_problems,
     get_course_videos,
 )
 from analytics_data_api.insights_snowflake.toggles import (
@@ -681,9 +682,8 @@ class CourseEnrollmentByLocationView(SnowflakeCourseEnrollmentMixin, BaseCourseE
         # value to be iterable, not necessarily a queryset.
         return returned_items
 
-
 # pylint: disable=abstract-method
-class ProblemsListView(BaseCourseView):
+class ProblemsListView(InsightsDataSourceResponseMixin, BaseCourseView):
     """
     Get the problems.
 
@@ -705,6 +705,15 @@ class ProblemsListView(BaseCourseView):
 
     @raise_404_if_none
     def get_queryset(self):
+        if is_insights_snowflake_enabled(self.request):
+            self.set_insights_data_source_snowflake()
+            data = get_course_problems(self.course_id)
+            if data:
+                return data
+            raise Http404
+
+        self.set_insights_data_source_aurora()
+
         # last_response_count is the number of submissions for the problem part and must
         # be divided by the number of problem parts to get the problem submission rather
         # than the problem *part* submissions
