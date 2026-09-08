@@ -85,8 +85,8 @@ from analytics_data_api.insights_snowflake.toggles import (
     INSIGHTS_SNOWFLAKE_FLAG,
     is_course_activity_snowflake_enabled,
     is_engagement_snowflake_enabled,
-    is_insights_snowflake_group_enabled,
     is_insights_snowflake_enabled,
+    is_insights_snowflake_group_enabled,
 )
 from analytics_data_api.snowflake_client import SnowflakeConfigurationError
 

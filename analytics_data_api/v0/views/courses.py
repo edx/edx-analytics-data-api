@@ -28,8 +28,8 @@ from analytics_data_api.insights_snowflake.service import (
 )
 from analytics_data_api.insights_snowflake.toggles import (
     is_course_activity_snowflake_enabled,
-    is_enrollment_snowflake_enabled,
     is_engagement_snowflake_enabled,
+    is_enrollment_snowflake_enabled,
     is_performance_snowflake_enabled,
 )
 from analytics_data_api.utils import dictfetchall, get_course_report_download_details
