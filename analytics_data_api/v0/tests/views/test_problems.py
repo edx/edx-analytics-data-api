@@ -147,7 +147,7 @@ class AnswerDistributionTests(TestCaseWithAuthentication):
         self.assertEqual(response.status_code, 404)
 
     def test_get_uses_aurora_when_global_snowflake_flag_disabled(self):
-        with patch('analytics_data_api.v0.views.problems.is_insights_snowflake_enabled', return_value=False):
+        with patch('analytics_data_api.v0.views.problems.is_performance_snowflake_enabled', return_value=False):
             with patch(
                     'analytics_data_api.v0.views.problems.get_problem_answer_distribution',
             ) as mock_get_answer_distribution:
@@ -190,7 +190,7 @@ class AnswerDistributionTests(TestCaseWithAuthentication):
             ),
         ]
 
-        with patch('analytics_data_api.v0.views.problems.is_insights_snowflake_enabled', return_value=True):
+        with patch('analytics_data_api.v0.views.problems.is_performance_snowflake_enabled', return_value=True):
             with patch(
                     'analytics_data_api.v0.views.problems.get_problem_answer_distribution',
                     return_value=snowflake_data,
@@ -207,7 +207,7 @@ class AnswerDistributionTests(TestCaseWithAuthentication):
         mock_get_answer_distribution.assert_called_once_with(self.module_id1)
 
     def test_get_returns_404_when_snowflake_service_returns_no_data(self):
-        with patch('analytics_data_api.v0.views.problems.is_insights_snowflake_enabled', return_value=True):
+        with patch('analytics_data_api.v0.views.problems.is_performance_snowflake_enabled', return_value=True):
             with patch(
                     'analytics_data_api.v0.views.problems.get_problem_answer_distribution',
                     return_value=[],

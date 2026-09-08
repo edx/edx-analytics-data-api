@@ -11,7 +11,7 @@ from rest_framework import generics
 
 from analytics_data_api.insights_snowflake.response_headers import InsightsDataSourceResponseMixin
 from analytics_data_api.insights_snowflake.service import get_problem_answer_distribution
-from analytics_data_api.insights_snowflake.toggles import is_insights_snowflake_enabled
+from analytics_data_api.insights_snowflake.toggles import is_performance_snowflake_enabled
 from analytics_data_api.utils import matching_tuple
 from analytics_data_api.v0.models import (
     GradeDistribution,
@@ -108,7 +108,7 @@ class ProblemResponseAnswerDistributionView(InsightsDataSourceResponseMixin, gen
         """Select all the answer distribution response having to do with this usage of the problem."""
         problem_id = self.kwargs.get('problem_id')
 
-        if is_insights_snowflake_enabled(self.request):
+        if is_performance_snowflake_enabled(self.request):
             self.set_insights_data_source_snowflake()
             self.serializer_class = ConsolidatedFirstLastAnswerDistributionSerializer
             queryset = get_problem_answer_distribution(problem_id)

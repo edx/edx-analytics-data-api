@@ -281,7 +281,10 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
         course_id = CourseSamples.course_ids[1]
         self.generate_data(ids=[course_id])
 
-        with patch('analytics_data_api.v0.views.course_summaries.is_insights_snowflake_enabled', return_value=False):
+        with patch(
+                'analytics_data_api.v0.views.course_summaries.is_course_summaries_snowflake_enabled',
+                return_value=False,
+        ):
             with patch('analytics_data_api.v0.views.course_summaries.get_course_summaries') as mock_get_summaries:
                 response = self.authenticated_get(
                     self.path({self.ids_param: [course_id], 'exclude': ['created']})
@@ -296,7 +299,10 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
         course_id = CourseSamples.course_ids[1]
         snowflake_data = [self.snowflake_summary(course_id)]
 
-        with patch('analytics_data_api.v0.views.course_summaries.is_insights_snowflake_enabled', return_value=True):
+        with patch(
+                'analytics_data_api.v0.views.course_summaries.is_course_summaries_snowflake_enabled',
+                return_value=True,
+        ):
             with patch(
                     'analytics_data_api.v0.views.course_summaries.get_course_summaries',
                     return_value=snowflake_data,
@@ -320,7 +326,10 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
         recent = (datetime.datetime.today() - datetime.timedelta(5)).strftime('%Y-%m-%d')
         snowflake_data = [self.snowflake_summary(course_id, programs=True, recent_count_change=5)]
 
-        with patch('analytics_data_api.v0.views.course_summaries.is_insights_snowflake_enabled', return_value=True):
+        with patch(
+                'analytics_data_api.v0.views.course_summaries.is_course_summaries_snowflake_enabled',
+                return_value=True,
+        ):
             with patch(
                     'analytics_data_api.v0.views.course_summaries.get_course_summaries',
                     return_value=snowflake_data,

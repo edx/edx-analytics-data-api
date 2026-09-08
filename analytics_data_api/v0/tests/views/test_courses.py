@@ -186,7 +186,7 @@ class CourseEnrollmentViewTestCaseMixin(CourseViewTestCaseMixin):
     def assertSnowflakeResponse(self, course_id, path, view_class, snowflake_data, expected):
         mock_get_data = Mock(return_value=snowflake_data)
 
-        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+        with patch('analytics_data_api.v0.views.courses.is_enrollment_snowflake_enabled', return_value=True):
             with patch.object(view_class, 'snowflake_service_function', staticmethod(mock_get_data)):
                 response = self.authenticated_get(f'/api/v1/courses/{course_id}{path}')
 
@@ -380,7 +380,7 @@ class CourseEnrollmentByEducationViewTests(CourseEnrollmentViewTestCaseMixin, Te
         course_id = CourseSamples.course_ids[0]
         mock_get_data = Mock(return_value=[])
 
-        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+        with patch('analytics_data_api.v0.views.courses.is_enrollment_snowflake_enabled', return_value=True):
             with patch.object(course_views.CourseEnrollmentView, 'snowflake_service_function',
                               staticmethod(mock_get_data)):
                 response = self.authenticated_get(f'/api/v1/courses/{course_id}/enrollment/')
@@ -516,7 +516,7 @@ class CourseEnrollmentViewTests(CourseEnrollmentViewTestCaseMixin, TestCaseWithA
         expected = self.format_as_response(latest_enrollment)
         mock_get_data = Mock()
 
-        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=False):
+        with patch('analytics_data_api.v0.views.courses.is_enrollment_snowflake_enabled', return_value=False):
             with patch.object(course_views.CourseEnrollmentView, 'snowflake_service_function',
                               staticmethod(mock_get_data)):
                 response = self.authenticated_get(f'/api/v1/courses/{course_id}/enrollment/')
@@ -939,7 +939,7 @@ class CourseProblemsListViewTests(TestCaseWithAuthentication):
             created=created,
         )
 
-        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=False):
+        with patch('analytics_data_api.v0.views.courses.is_performance_snowflake_enabled', return_value=False):
             with patch('analytics_data_api.v0.views.courses.get_course_problems') as mock_get_problems:
                 response = self._get_data(course_id)
 
@@ -965,7 +965,7 @@ class CourseProblemsListViewTests(TestCaseWithAuthentication):
             'created': created.strftime(settings.DATETIME_FORMAT),
         }]
 
-        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+        with patch('analytics_data_api.v0.views.courses.is_performance_snowflake_enabled', return_value=True):
             with patch(
                     'analytics_data_api.v0.views.courses.get_course_problems',
                     return_value=snowflake_data,
@@ -980,7 +980,7 @@ class CourseProblemsListViewTests(TestCaseWithAuthentication):
     def test_get_returns_404_when_snowflake_service_returns_no_data(self):
         course_id = CourseSamples.course_ids[0]
 
-        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+        with patch('analytics_data_api.v0.views.courses.is_performance_snowflake_enabled', return_value=True):
             with patch(
                     'analytics_data_api.v0.views.courses.get_course_problems',
                     return_value=[],
@@ -1147,7 +1147,7 @@ class CourseVideosListViewTests(TestCaseWithAuthentication):
           pipeline_video_id=video_id, duration=100, segment_length=1, users_at_start=50, users_at_end=10,
           created=created)
 
-        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=False), \
+        with patch('analytics_data_api.v0.views.courses.is_engagement_snowflake_enabled', return_value=False), \
                 patch('analytics_data_api.v0.views.courses.get_course_videos') as mock_get_videos:
             response = self._get_data(course_id)
 
@@ -1177,7 +1177,7 @@ class CourseVideosListViewTests(TestCaseWithAuthentication):
             'created': created.strftime(settings.DATETIME_FORMAT),
         }]
 
-        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+        with patch('analytics_data_api.v0.views.courses.is_engagement_snowflake_enabled', return_value=True):
             with patch(
                     'analytics_data_api.v0.views.courses.get_course_videos',
                     return_value=snowflake_data,
@@ -1192,7 +1192,7 @@ class CourseVideosListViewTests(TestCaseWithAuthentication):
     def test_get_returns_404_when_snowflake_service_returns_no_data(self):
         course_id = CourseSamples.course_ids[0]
 
-        with patch('analytics_data_api.v0.views.courses.is_insights_snowflake_enabled', return_value=True):
+        with patch('analytics_data_api.v0.views.courses.is_engagement_snowflake_enabled', return_value=True):
             with patch(
                     'analytics_data_api.v0.views.courses.get_course_videos',
                     return_value=[],

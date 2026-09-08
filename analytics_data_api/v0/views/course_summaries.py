@@ -8,7 +8,7 @@ from django.http import Http404, HttpResponseBadRequest
 from analytics_data_api.constants import enrollment_modes
 from analytics_data_api.insights_snowflake.response_headers import InsightsDataSourceResponseMixin
 from analytics_data_api.insights_snowflake.service import get_course_summaries
-from analytics_data_api.insights_snowflake.toggles import is_insights_snowflake_enabled
+from analytics_data_api.insights_snowflake.toggles import is_course_summaries_snowflake_enabled
 from analytics_data_api.v0 import models, serializers
 from analytics_data_api.v0.views import APIListView
 from analytics_data_api.v0.views.utils import split_query_argument, validate_course_id
@@ -262,7 +262,7 @@ class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
         raise Http404
 
     def get_queryset(self):
-        if is_insights_snowflake_enabled(self.request):
+        if is_course_summaries_snowflake_enabled(self.request):
             self.set_insights_data_source_snowflake()
             return self.get_snowflake_queryset()
 

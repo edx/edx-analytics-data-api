@@ -81,8 +81,11 @@ from analytics_data_api.insights_snowflake.service import (
 )
 from analytics_data_api.insights_snowflake.toggles import (
     COURSE_ACTIVITY_SNOWFLAKE_FLAG,
+    ENGAGEMENT_SNOWFLAKE_FLAG,
     INSIGHTS_SNOWFLAKE_FLAG,
     is_course_activity_snowflake_enabled,
+    is_engagement_snowflake_enabled,
+    is_insights_snowflake_group_enabled,
     is_insights_snowflake_enabled,
 )
 from analytics_data_api.snowflake_client import SnowflakeConfigurationError
@@ -1238,24 +1241,55 @@ class InsightsSnowflakeToggleTests(SimpleTestCase):
         mock_flag_is_active.assert_called_once_with(request, INSIGHTS_SNOWFLAKE_FLAG)
 
     @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
-    def test_is_course_activity_snowflake_enabled_uses_global_flag(self, mock_flag_is_active):
+    def test_group_flag_requires_global_flag(self, mock_flag_is_active):
         request = Mock()
-        mock_flag_is_active.return_value = True
+        mock_flag_is_active.return_value = False
 
-        self.assertTrue(is_course_activity_snowflake_enabled(request))
+        self.assertFalse(is_insights_snowflake_group_enabled(request, ENGAGEMENT_SNOWFLAKE_FLAG))
 
         mock_flag_is_active.assert_called_once_with(request, INSIGHTS_SNOWFLAKE_FLAG)
 
     @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
-    def test_is_course_activity_snowflake_enabled_uses_endpoint_flag(self, mock_flag_is_active):
+    def test_group_flag_requires_group_flag(self, mock_flag_is_active):
         request = Mock()
-        mock_flag_is_active.side_effect = [False, True]
+        mock_flag_is_active.side_effect = [True, False]
+
+        self.assertFalse(is_insights_snowflake_group_enabled(request, ENGAGEMENT_SNOWFLAKE_FLAG))
+
+        self.assertEqual(mock_flag_is_active.call_args_list[0].args, (request, INSIGHTS_SNOWFLAKE_FLAG))
+        self.assertEqual(mock_flag_is_active.call_args_list[1].args, (request, ENGAGEMENT_SNOWFLAKE_FLAG))
+
+    @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
+    def test_engagement_group_flag_uses_global_and_group_flags(self, mock_flag_is_active):
+        request = Mock()
+        mock_flag_is_active.side_effect = [True, True]
+
+        self.assertTrue(is_engagement_snowflake_enabled(request))
+
+        self.assertEqual(mock_flag_is_active.call_args_list[0].args, (request, INSIGHTS_SNOWFLAKE_FLAG))
+        self.assertEqual(mock_flag_is_active.call_args_list[1].args, (request, ENGAGEMENT_SNOWFLAKE_FLAG))
+
+    @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
+    def test_is_course_activity_snowflake_enabled_uses_global_flag(self, mock_flag_is_active):
+        request = Mock()
+        mock_flag_is_active.side_effect = [True, True]
 
         self.assertTrue(is_course_activity_snowflake_enabled(request))
 
-        self.assertEqual(mock_flag_is_active.call_count, 2)
         self.assertEqual(mock_flag_is_active.call_args_list[0].args, (request, INSIGHTS_SNOWFLAKE_FLAG))
         self.assertEqual(mock_flag_is_active.call_args_list[1].args, (request, COURSE_ACTIVITY_SNOWFLAKE_FLAG))
+
+    @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
+    def test_is_course_activity_snowflake_enabled_uses_endpoint_flag(self, mock_flag_is_active):
+        request = Mock()
+        mock_flag_is_active.side_effect = [True, True, False]
+
+        self.assertTrue(is_course_activity_snowflake_enabled(request))
+
+        self.assertEqual(mock_flag_is_active.call_count, 3)
+        self.assertEqual(mock_flag_is_active.call_args_list[0].args, (request, INSIGHTS_SNOWFLAKE_FLAG))
+        self.assertEqual(mock_flag_is_active.call_args_list[1].args, (request, COURSE_ACTIVITY_SNOWFLAKE_FLAG))
+        self.assertEqual(mock_flag_is_active.call_args_list[2].args, (request, ENGAGEMENT_SNOWFLAKE_FLAG))
 
     @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
     def test_is_course_activity_snowflake_enabled_returns_false_when_flags_disabled(self, mock_flag_is_active):
@@ -1264,6 +1298,4 @@ class InsightsSnowflakeToggleTests(SimpleTestCase):
 
         self.assertFalse(is_course_activity_snowflake_enabled(request))
 
-        self.assertEqual(mock_flag_is_active.call_count, 2)
-        self.assertEqual(mock_flag_is_active.call_args_list[0].args, (request, INSIGHTS_SNOWFLAKE_FLAG))
-        self.assertEqual(mock_flag_is_active.call_args_list[1].args, (request, COURSE_ACTIVITY_SNOWFLAKE_FLAG))
+        mock_flag_is_active.assert_called_once_with(request, INSIGHTS_SNOWFLAKE_FLAG)

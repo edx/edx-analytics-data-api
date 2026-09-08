@@ -72,7 +72,7 @@ class VideoTimelineTests(TestCaseWithAuthentication):
         G(models.VideoTimeline, pipeline_video_id=video_id, segment=0, num_users=10,
           num_views=50, created=created)
 
-        with patch('analytics_data_api.v0.views.videos.is_insights_snowflake_enabled', return_value=False), \
+        with patch('analytics_data_api.v0.views.videos.is_engagement_snowflake_enabled', return_value=False), \
                 patch('analytics_data_api.v0.views.videos.get_video_timeline') as mock_get_timeline:
             response = self._get_data(video_id)
 
@@ -96,7 +96,7 @@ class VideoTimelineTests(TestCaseWithAuthentication):
             'created': created.strftime(settings.DATETIME_FORMAT),
         }]
 
-        with patch('analytics_data_api.v0.views.videos.is_insights_snowflake_enabled', return_value=True):
+        with patch('analytics_data_api.v0.views.videos.is_engagement_snowflake_enabled', return_value=True):
             with patch(
                     'analytics_data_api.v0.views.videos.get_video_timeline',
                     return_value=snowflake_data,
@@ -111,7 +111,7 @@ class VideoTimelineTests(TestCaseWithAuthentication):
     def test_get_returns_404_when_snowflake_service_returns_no_data(self):
         video_id = 'v1d30'
 
-        with patch('analytics_data_api.v0.views.videos.is_insights_snowflake_enabled', return_value=True):
+        with patch('analytics_data_api.v0.views.videos.is_engagement_snowflake_enabled', return_value=True):
             with patch(
                     'analytics_data_api.v0.views.videos.get_video_timeline',
                     return_value=[],
