@@ -1282,13 +1282,14 @@ class InsightsSnowflakeToggleTests(SimpleTestCase):
     @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
     def test_is_course_activity_snowflake_enabled_uses_endpoint_flag(self, mock_flag_is_active):
         request = Mock()
-        mock_flag_is_active.side_effect = [True, True, False]
+        mock_flag_is_active.side_effect = [True, False, True]
 
         self.assertTrue(is_course_activity_snowflake_enabled(request))
 
-        self.assertEqual(mock_flag_is_active.call_count, 2)
+        self.assertEqual(mock_flag_is_active.call_count, 3)
         self.assertEqual(mock_flag_is_active.call_args_list[0].args, (request, INSIGHTS_SNOWFLAKE_FLAG))
         self.assertEqual(mock_flag_is_active.call_args_list[1].args, (request, COURSE_ACTIVITY_SNOWFLAKE_FLAG))
+        self.assertEqual(mock_flag_is_active.call_args_list[2].args, (request, ENGAGEMENT_SNOWFLAKE_FLAG))
 
     @patch('analytics_data_api.insights_snowflake.toggles.flag_is_active')
     def test_is_course_activity_snowflake_enabled_returns_false_when_flags_disabled(self, mock_flag_is_active):
