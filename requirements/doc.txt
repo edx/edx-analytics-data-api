@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements/doc.txt requirements/doc.in
 #
-2u-enterprise-data==10.22.2
+2u-enterprise-data==10.22.3
     # via -r requirements/base.in
 accessible-pygments==0.0.5
     # via pydata-sphinx-theme

@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements/production.txt requirements/production.in
 #
-2u-enterprise-data==10.22.2
+2u-enterprise-data==10.22.3
     # via -r requirements/base.in
 asgiref==3.11.1
     # via
