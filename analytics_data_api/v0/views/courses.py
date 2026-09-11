@@ -28,7 +28,9 @@ from analytics_data_api.insights_snowflake.service import (
 )
 from analytics_data_api.insights_snowflake.toggles import (
     is_course_activity_snowflake_enabled,
-    is_insights_snowflake_enabled,
+    is_engagement_snowflake_enabled,
+    is_enrollment_snowflake_enabled,
+    is_performance_snowflake_enabled,
 )
 from analytics_data_api.utils import dictfetchall, get_course_report_download_details
 from analytics_data_api.v0 import models, serializers
@@ -322,7 +324,7 @@ class SnowflakeCourseEnrollmentMixin(InsightsDataSourceResponseMixin):
         return super().get_queryset()
 
     def get_queryset(self):
-        if is_insights_snowflake_enabled(self.request):
+        if is_enrollment_snowflake_enabled(self.request):
             self.set_insights_data_source_snowflake()
             return self.get_snowflake_queryset()
 
@@ -707,7 +709,7 @@ class ProblemsListView(InsightsDataSourceResponseMixin, BaseCourseView):
 
     @raise_404_if_none
     def get_queryset(self):
-        if is_insights_snowflake_enabled(self.request):
+        if is_performance_snowflake_enabled(self.request):
             self.set_insights_data_source_snowflake()
             data = get_course_problems(self.course_id)
             if data:
@@ -849,7 +851,7 @@ class VideosListView(InsightsDataSourceResponseMixin, BaseCourseView):
     model = models.Video
 
     def get_queryset(self):
-        if is_insights_snowflake_enabled(self.request):
+        if is_engagement_snowflake_enabled(self.request):
             self.set_insights_data_source_snowflake()
             data = get_course_videos(self.course_id)
             if data:

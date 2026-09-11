@@ -112,7 +112,7 @@ class ProgramsViewTests(TestCaseWithAuthentication, APIListViewTestMixin):
         program_id = CourseSamples.program_ids[0]
         self.generate_data(ids=[program_id])
 
-        with patch('analytics_data_api.v0.views.programs.is_insights_snowflake_enabled', return_value=False):
+        with patch('analytics_data_api.v0.views.programs.is_course_summaries_snowflake_enabled', return_value=False):
             with patch('analytics_data_api.v0.views.programs.get_program_metadata') as mock_get_program_metadata:
                 response = self.authenticated_get(f'/api/v0/programs/?program_ids={program_id}&exclude=created')
 
@@ -131,7 +131,7 @@ class ProgramsViewTests(TestCaseWithAuthentication, APIListViewTestMixin):
             'course_ids': [self.course_id],
         }]
 
-        with patch('analytics_data_api.v0.views.programs.is_insights_snowflake_enabled', return_value=True):
+        with patch('analytics_data_api.v0.views.programs.is_course_summaries_snowflake_enabled', return_value=True):
             with patch(
                     'analytics_data_api.v0.views.programs.get_program_metadata',
                     return_value=snowflake_data,
