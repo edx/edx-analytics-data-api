@@ -30,7 +30,7 @@
 | analytics\_data\_api/insights\_snowflake/queries/videos.py                            |       11 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/insights\_snowflake/response\_headers.py                         |       17 |        0 |        2 |        0 |    100% |           |
 | analytics\_data\_api/insights\_snowflake/service.py                                   |       50 |        0 |        0 |        0 |    100% |           |
-| analytics\_data\_api/insights\_snowflake/toggles.py                                   |        7 |        0 |        0 |        0 |    100% |           |
+| analytics\_data\_api/insights\_snowflake/toggles.py                                   |       21 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/management/\_\_init\_\_.py                                       |        0 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/management/commands/\_\_init\_\_.py                              |        0 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/management/commands/check\_insights\_snowflake.py                |       24 |        0 |        0 |        0 |    100% |           |
@@ -46,7 +46,7 @@
 | analytics\_data\_api/renderers.py                                                     |       41 |        0 |       16 |        0 |    100% |           |
 | analytics\_data\_api/snowflake\_client.py                                             |       53 |        0 |       12 |        1 |     98% | 113-\>115 |
 | analytics\_data\_api/tests/\_\_init\_\_.py                                            |        0 |        0 |        0 |        0 |    100% |           |
-| analytics\_data\_api/tests/test\_insights\_snowflake.py                               |      525 |        0 |        4 |        0 |    100% |           |
+| analytics\_data\_api/tests/test\_insights\_snowflake.py                               |      545 |        0 |        4 |        0 |    100% |           |
 | analytics\_data\_api/tests/test\_middleware.py                                        |       18 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/tests/test\_renderers.py                                         |       37 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/tests/test\_snowflake\_client.py                                 |       67 |        0 |        0 |        0 |    100% |           |
@@ -82,7 +82,7 @@
 | analytics\_data\_api/v0/urls/videos.py                                                |        8 |        0 |        2 |        0 |    100% |           |
 | analytics\_data\_api/v0/views/\_\_init\_\_.py                                         |       57 |        1 |        6 |        0 |     98% |       146 |
 | analytics\_data\_api/v0/views/course\_summaries.py                                    |      132 |        1 |       48 |        1 |     99% |       262 |
-| analytics\_data\_api/v0/views/courses.py                                              |      316 |        4 |       74 |        5 |     98% |149-\>152, 299-\>302, 742-745, 754, 768-\>758 |
+| analytics\_data\_api/v0/views/courses.py                                              |      316 |        4 |       74 |        5 |     98% |151-\>154, 301-\>304, 744-747, 756, 770-\>760 |
 | analytics\_data\_api/v0/views/learners.py                                             |       37 |        0 |        4 |        0 |    100% |           |
 | analytics\_data\_api/v0/views/problems.py                                             |       76 |        1 |       22 |        1 |     98% |        92 |
 | analytics\_data\_api/v0/views/programs.py                                             |       36 |        1 |        4 |        1 |     95% |        76 |
@@ -90,7 +90,7 @@
 | analytics\_data\_api/v0/views/videos.py                                               |       25 |        0 |        4 |        0 |    100% |           |
 | analytics\_data\_api/v1/\_\_init\_\_.py                                               |        0 |        0 |        0 |        0 |    100% |           |
 | analytics\_data\_api/v1/urls.py                                                       |       11 |        0 |        2 |        0 |    100% |           |
-| **TOTAL**                                                                             | **4553** |   **70** |  **530** |   **23** | **98%** |           |
+| **TOTAL**                                                                             | **4587** |   **70** |  **530** |   **23** | **98%** |           |
 
 
 ## Setup coverage badge

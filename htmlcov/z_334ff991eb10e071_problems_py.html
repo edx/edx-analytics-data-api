@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="z_334ff991eb10e071_programs_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-10 10:07 +0000
+            created at 2026-09-11 03:13 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -95,7 +95,7 @@
     <p class="pln"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">insights_snowflake</span><span class="op">.</span><span class="nam">response_headers</span> <span class="key">import</span> <span class="nam">InsightsDataSourceResponseMixin</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">insights_snowflake</span><span class="op">.</span><span class="nam">service</span> <span class="key">import</span> <span class="nam">get_problem_answer_distribution</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">insights_snowflake</span><span class="op">.</span><span class="nam">toggles</span> <span class="key">import</span> <span class="nam">is_insights_snowflake_enabled</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">insights_snowflake</span><span class="op">.</span><span class="nam">toggles</span> <span class="key">import</span> <span class="nam">is_performance_snowflake_enabled</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">utils</span> <span class="key">import</span> <span class="nam">matching_tuple</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">v0</span><span class="op">.</span><span class="nam">models</span> <span class="key">import</span> <span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t">    <span class="nam">GradeDistribution</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
@@ -192,7 +192,7 @@
     <p class="pln"><span class="n"><a id="t108" href="#t108">108</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Select all the answer distribution response having to do with this usage of the problem.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t109" href="#t109">109</a></span><span class="t">        <span class="nam">problem_id</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">kwargs</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="str">&#x27;problem_id&#x27;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t110" href="#t110">110</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t111" href="#t111">111</a></span><span class="t">        <span class="key">if</span> <span class="nam">is_insights_snowflake_enabled</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">request</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t111" href="#t111">111</a></span><span class="t">        <span class="key">if</span> <span class="nam">is_performance_snowflake_enabled</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">request</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t112" href="#t112">112</a></span><span class="t">            <span class="nam">self</span><span class="op">.</span><span class="nam">set_insights_data_source_snowflake</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t113" href="#t113">113</a></span><span class="t">            <span class="nam">self</span><span class="op">.</span><span class="nam">serializer_class</span> <span class="op">=</span> <span class="nam">ConsolidatedFirstLastAnswerDistributionSerializer</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t114" href="#t114">114</a></span><span class="t">            <span class="nam">queryset</span> <span class="op">=</span> <span class="nam">get_problem_answer_distribution</span><span class="op">(</span><span class="nam">problem_id</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -285,7 +285,7 @@
             <a class="nav" href="z_334ff991eb10e071_programs_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-10 10:07 +0000
+            created at 2026-09-11 03:13 +0000
         </p>
     </div>
 </footer>

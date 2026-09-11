@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="z_334ff991eb10e071_utils_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-10 10:07 +0000
+            created at 2026-09-11 03:13 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -89,7 +89,7 @@
     <p class="pln"><span class="n"><a id="t5" href="#t5">5</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t6" href="#t6">6</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">insights_snowflake</span><span class="op">.</span><span class="nam">response_headers</span> <span class="key">import</span> <span class="nam">InsightsDataSourceResponseMixin</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t7" href="#t7">7</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">insights_snowflake</span><span class="op">.</span><span class="nam">service</span> <span class="key">import</span> <span class="nam">get_program_metadata</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t8" href="#t8">8</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">insights_snowflake</span><span class="op">.</span><span class="nam">toggles</span> <span class="key">import</span> <span class="nam">is_insights_snowflake_enabled</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t8" href="#t8">8</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">insights_snowflake</span><span class="op">.</span><span class="nam">toggles</span> <span class="key">import</span> <span class="nam">is_course_summaries_snowflake_enabled</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t9" href="#t9">9</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">v0</span> <span class="key">import</span> <span class="nam">models</span><span class="op">,</span> <span class="nam">serializers</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t"><span class="key">from</span> <span class="nam">analytics_data_api</span><span class="op">.</span><span class="nam">v0</span><span class="op">.</span><span class="nam">views</span> <span class="key">import</span> <span class="nam">APIListView</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -160,7 +160,7 @@
     <p class="mis show_mis"><span class="n"><a id="t76" href="#t76">76</a></span><span class="t">        <span class="key">raise</span> <span class="nam">Http404</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t77" href="#t77">77</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t78" href="#t78">78</a></span><span class="t">    <span class="key">def</span> <span class="nam">get_queryset</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t79" href="#t79">79</a></span><span class="t">        <span class="key">if</span> <span class="nam">is_insights_snowflake_enabled</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">request</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t79" href="#t79">79</a></span><span class="t">        <span class="key">if</span> <span class="nam">is_course_summaries_snowflake_enabled</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">request</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t80" href="#t80">80</a></span><span class="t">            <span class="nam">self</span><span class="op">.</span><span class="nam">set_insights_data_source_snowflake</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t81" href="#t81">81</a></span><span class="t">            <span class="key">return</span> <span class="nam">self</span><span class="op">.</span><span class="nam">get_snowflake_queryset</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t82" href="#t82">82</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -175,7 +175,7 @@
             <a class="nav" href="z_334ff991eb10e071_utils_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-10 10:07 +0000
+            created at 2026-09-11 03:13 +0000
         </p>
     </div>
 </footer>
