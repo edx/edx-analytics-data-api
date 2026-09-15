@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import include, re_path
+from django.urls import include, path, re_path
 from django.views.generic import RedirectView
 from edx_api_doc_tools import make_api_info, make_docs_ui_view
 from rest_framework.authtoken.views import obtain_auth_token
@@ -31,6 +31,7 @@ api_ui_view = make_docs_ui_view(
 )
 
 urlpatterns += [
+    path('admin/', admin.site.urls),
     re_path(r'^docs/$', api_ui_view, name='api-docs'),
     re_path(r'^$', RedirectView.as_view(url='/docs')),  # pylint: disable=no-value-for-parameter
 ]
