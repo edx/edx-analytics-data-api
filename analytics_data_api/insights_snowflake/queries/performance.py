@@ -1,6 +1,7 @@
 """Snowflake queries for performance metrics."""
 
 from analytics_data_api.insights_snowflake.client import fetch_all, get_qualified_table_name
+from analytics_data_api.insights_snowflake.course_ids import build_preferred_course_id_filter
 
 PROBLEM_ANSWER_DISTRIBUTION_TABLE = 'PROBLEM_ANSWER_DISTRIBUTION'
 
@@ -8,6 +9,14 @@ PROBLEM_ANSWER_DISTRIBUTION_TABLE = 'PROBLEM_ANSWER_DISTRIBUTION'
 def get_course_problem_rows(course_id):
     """Return Snowflake rows for the course problems list."""
     table_name = get_qualified_table_name(PROBLEM_ANSWER_DISTRIBUTION_TABLE)
+    course_filter, params = build_preferred_course_id_filter(
+        table_name,
+        'course_id',
+        [course_id],
+        alias='source',
+        prefix='',
+        scope_columns=('module_id', 'part_id'),
+    )
     sql = """
 SELECT
     module_id,
@@ -16,13 +25,13 @@ SELECT
         AS correct_submissions,
     LISTAGG(DISTINCT part_id, ',') WITHIN GROUP (ORDER BY part_id) AS part_ids,
     MAX(created) AS created
-FROM {table_name}
-WHERE course_id = %(course_id)s
+FROM {table_name} AS source
+WHERE {course_filter}
 GROUP BY module_id
 ORDER BY module_id
-""".format(table_name=table_name)
+""".format(table_name=table_name, course_filter=course_filter)
 
-    return fetch_all(sql, {'course_id': course_id})
+    return fetch_all(sql, params)
 
 
 def get_problem_answer_distribution_rows(problem_id):

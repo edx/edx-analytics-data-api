@@ -2,6 +2,8 @@
 
 from itertools import groupby
 
+from analytics_data_api.insights_snowflake.course_ids import get_response_course_id
+
 ACTIVITY_FIELD_MAP = {
     'active': 'any',
     'attempted_problem': 'attempted_problem',
@@ -23,12 +25,17 @@ def _activity_field(activity_label):
     return ACTIVITY_FIELD_MAP.get(activity_label, activity_label)
 
 
+def _course_id(row):
+    """Return the canonical course ID from a Snowflake row."""
+    return get_response_course_id(_row_value(row, 'course_id'))
+
+
 def map_course_activity_weekly_rows(rows):
     """Pivot Snowflake course activity rows into existing API response dictionaries."""
     rows = sorted(
         rows or [],
         key=lambda row: (
-            _row_value(row, 'course_id'),
+            _course_id(row) or '',
             _row_value(row, 'interval_start'),
             _row_value(row, 'interval_end'),
         )
@@ -38,7 +45,7 @@ def map_course_activity_weekly_rows(rows):
     for key, group in groupby(
             rows,
             lambda row: (
-                _row_value(row, 'course_id'),
+                _course_id(row),
                 _row_value(row, 'interval_start'),
                 _row_value(row, 'interval_end'),
             )

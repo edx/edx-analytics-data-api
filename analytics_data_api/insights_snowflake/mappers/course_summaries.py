@@ -2,7 +2,10 @@
 
 from itertools import groupby
 
+from opaque_keys import InvalidKeyError
+
 from analytics_data_api.constants import enrollment_modes
+from analytics_data_api.insights_snowflake.course_ids import get_course_id_variants, get_response_course_id
 
 COUNT_FIELDS = ('count', 'cumulative_count', 'count_change_7_days', 'passing_users')
 SUMMARY_META_FIELDS = (
@@ -27,6 +30,43 @@ def _count_value(row, name):
     return int(_row_value(row, name) or 0)
 
 
+def _optional_row_value(row, name):
+    """Return a row value when present, otherwise None for defensive deduplication."""
+    return row.get(name, row.get(name.upper()))
+
+
+def _course_id(row):
+    """Return the canonical course ID from a Snowflake row."""
+    return get_response_course_id(_row_value(row, 'course_id'))
+
+
+def _drop_legacy_rows_when_canonical_exists(rows, scope_fields):
+    """Drop duplicate legacy rows while preserving specialized and invalid IDs."""
+    rows = list(rows or [])
+    canonical_keys = set()
+    row_details = []
+
+    for row in rows:
+        raw_course_id = _row_value(row, 'course_id')
+        try:
+            canonical_course_id, legacy_course_id = get_course_id_variants(raw_course_id)
+        except (InvalidKeyError, TypeError):
+            row_details.append((row, raw_course_id, None, None, None))
+            continue
+
+        scope = tuple(_optional_row_value(row, field) for field in scope_fields)
+        row_details.append((row, raw_course_id, canonical_course_id, legacy_course_id, scope))
+        if legacy_course_id is not None and raw_course_id == canonical_course_id:
+            canonical_keys.add((canonical_course_id, scope))
+
+    return [
+        row for row, raw_course_id, canonical_course_id, legacy_course_id, scope in row_details
+        if not (legacy_course_id is not None and
+                raw_course_id == legacy_course_id and
+                (canonical_course_id, scope) in canonical_keys)
+    ]
+
+
 def _base_course_summary(course_id):
     """Return the default course summary shape used by the existing API."""
     summary = {
@@ -46,15 +86,17 @@ def _base_course_summary(course_id):
 def _programs_by_course(program_rows):
     """Return program IDs grouped by course ID."""
     programs = {}
-    for row in program_rows or []:
-        programs.setdefault(_row_value(row, 'course_id'), []).append(_row_value(row, 'program_id'))
+    program_rows = _drop_legacy_rows_when_canonical_exists(program_rows, ('program_id',))
+    for row in program_rows:
+        programs.setdefault(_course_id(row), []).append(_row_value(row, 'program_id'))
     return programs
 
 
 def _recent_counts_by_course(recent_rows):
     """Return recent enrollment counts keyed by course ID."""
+    recent_rows = _drop_legacy_rows_when_canonical_exists(recent_rows, ('date',))
     return {
-        _row_value(row, 'course_id'): _count_value(row, 'count')
+        _course_id(row): _count_value(row, 'count')
         for row in recent_rows or []
     }
 
@@ -79,10 +121,11 @@ def _postprocess_course_summary(summary, exclude=None):
 
 def map_course_summary_rows(summary_rows, program_rows=None, recent_rows=None, exclude=None):
     """Group course summary rows into one API item per course."""
+    summary_rows = _drop_legacy_rows_when_canonical_exists(summary_rows, ('enrollment_mode',))
     rows = sorted(
         summary_rows or [],
         key=lambda row: (
-            _row_value(row, 'course_id') or '',
+            _course_id(row) or '',
             _row_value(row, 'enrollment_mode') or '',
         ),
     )
@@ -90,7 +133,7 @@ def map_course_summary_rows(summary_rows, program_rows=None, recent_rows=None, e
     recent_counts = _recent_counts_by_course(recent_rows) if recent_rows is not None else None
     summaries = []
 
-    for course_id, group in groupby(rows, lambda row: _row_value(row, 'course_id')):
+    for course_id, group in groupby(rows, _course_id):
         summary = _base_course_summary(course_id)
 
         for row in group:

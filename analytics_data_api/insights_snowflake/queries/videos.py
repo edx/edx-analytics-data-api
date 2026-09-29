@@ -1,6 +1,7 @@
 """Snowflake queries for video engagement metrics."""
 
 from analytics_data_api.insights_snowflake.client import fetch_all, get_qualified_table_name
+from analytics_data_api.insights_snowflake.course_ids import build_preferred_course_id_filter
 
 VIDEO_TABLE = 'VIDEO'
 VIDEO_TIMELINE_TABLE = 'VIDEO_TIMELINE'
@@ -9,6 +10,14 @@ VIDEO_TIMELINE_TABLE = 'VIDEO_TIMELINE'
 def get_course_video_rows(course_id):
     """Return Snowflake rows for videos in a course."""
     table_name = get_qualified_table_name(VIDEO_TABLE)
+    course_filter, params = build_preferred_course_id_filter(
+        table_name,
+        'courserun_key',
+        [course_id],
+        alias='source',
+        prefix='',
+        scope_columns=('pipeline_video_id',),
+    )
     sql = """
 SELECT
     courserun_key AS course_id,
@@ -19,12 +28,12 @@ SELECT
     users_at_start,
     users_at_end,
     created
-FROM {table_name}
-WHERE courserun_key = %(course_id)s
+FROM {table_name} AS source
+WHERE {course_filter}
 ORDER BY pipeline_video_id
-""".format(table_name=table_name)
+""".format(table_name=table_name, course_filter=course_filter)
 
-    return fetch_all(sql, {'course_id': course_id})
+    return fetch_all(sql, params)
 
 
 def get_video_timeline_rows(video_id):

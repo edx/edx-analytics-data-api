@@ -4,10 +4,18 @@ import datetime
 from unittest.mock import Mock, patch
 
 from django.test import SimpleTestCase, override_settings
+from opaque_keys import InvalidKeyError
+from opaque_keys.edx.keys import CourseKey
 from rest_framework.response import Response
 
 from analytics_data_api.constants import country, enrollment_modes, genders
 from analytics_data_api.insights_snowflake.client import fetch_all, get_qualified_table_name
+from analytics_data_api.insights_snowflake.course_ids import (
+    build_preferred_course_id_filter,
+    build_unfiltered_course_id_filter,
+    get_course_id_variants,
+    get_response_course_id,
+)
 from analytics_data_api.insights_snowflake.mappers.activity import map_course_activity_weekly_rows
 from analytics_data_api.insights_snowflake.mappers.course_summaries import map_course_summary_rows
 from analytics_data_api.insights_snowflake.mappers.enrollment import (
@@ -90,6 +98,115 @@ from analytics_data_api.insights_snowflake.toggles import (
 )
 from analytics_data_api.snowflake_client import SnowflakeConfigurationError
 
+COURSE_ID = 'course-v1:edX+DemoX+Demo_Course'
+LEGACY_COURSE_ID = 'edX/DemoX/Demo_Course'
+SECOND_COURSE_ID = 'course-v1:edX+DemoX+Demo_2014'
+CCX_COURSE_ID = 'ccx-v1:edx+1.005x-CCX+rerun+ccx@15'
+COURSE_ID_PARAMS = {
+    'course_id_0_canonical': COURSE_ID,
+    'course_id_0_legacy': LEGACY_COURSE_ID,
+}
+
+
+class InsightsSnowflakeCourseIdTests(SimpleTestCase):
+    """Cover canonical and legacy course identifier query handling."""
+
+    def setUp(self):
+        super().setUp()
+        get_course_id_variants.cache_clear()
+
+    def tearDown(self):
+        get_course_id_variants.cache_clear()
+        super().tearDown()
+
+    def test_get_course_id_variants_normalizes_legacy_and_canonical_values(self):
+        self.assertEqual(get_course_id_variants(COURSE_ID), (COURSE_ID, LEGACY_COURSE_ID))
+        self.assertEqual(get_course_id_variants(LEGACY_COURSE_ID), (COURSE_ID, LEGACY_COURSE_ID))
+
+    @patch('analytics_data_api.insights_snowflake.course_ids.CourseKey.from_string')
+    def test_get_course_id_variants_falls_back_for_unrepresentable_legacy_values(self, mock_from_string):
+        legacy_course_id = 'edX/Demo%20X/run'
+        mock_from_string.side_effect = [
+            Mock(org='edX', course='Demo%20X', run='run'),
+            InvalidKeyError(CourseKey, legacy_course_id),
+        ]
+
+        self.assertEqual(get_course_id_variants(legacy_course_id), (legacy_course_id, None))
+
+    def test_get_course_id_variants_preserves_specialized_course_keys(self):
+        self.assertEqual(get_course_id_variants(CCX_COURSE_ID), (CCX_COURSE_ID, None))
+
+    def test_get_response_course_id_preserves_invalid_stored_values(self):
+        self.assertIsNone(get_response_course_id(None))
+        self.assertEqual(get_response_course_id('not-a-course-key'), 'not-a-course-key')
+
+    def test_build_preferred_course_id_filter_prefers_canonical_rows(self):
+        course_filter, params = build_preferred_course_id_filter(
+            'PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY',
+            'course_id',
+            [COURSE_ID, LEGACY_COURSE_ID],
+        )
+
+        self.assertEqual(course_filter.count('course_id_0_canonical'), 2)
+        self.assertNotIn('course_id_1_canonical', course_filter)
+        self.assertEqual(params, COURSE_ID_PARAMS)
+        self.assertIn('NOT EXISTS', course_filter)
+
+    def test_build_preferred_course_id_filter_scopes_canonical_preference(self):
+        course_filter, _params = build_preferred_course_id_filter(
+            'PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY',
+            'course_id',
+            [COURSE_ID],
+            scope_columns=('"DATE"',),
+        )
+
+        self.assertIn('EQUAL_NULL(canonical_0."DATE", source."DATE")', course_filter)
+
+    def test_build_preferred_course_id_filter_uses_null_safe_scope_comparison(self):
+        course_filter, _params = build_preferred_course_id_filter(
+            'PROD.INSIGHTS.COURSE_ENROLLMENT_GENDER_DAILY',
+            'course_id',
+            [COURSE_ID],
+            scope_columns=('gender',),
+        )
+
+        self.assertIn('EQUAL_NULL(canonical_0.gender, source.gender)', course_filter)
+
+    def test_build_preferred_course_id_filter_does_not_convert_specialized_keys(self):
+        course_filter, params = build_preferred_course_id_filter(
+            'PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY',
+            'course_id',
+            [CCX_COURSE_ID],
+        )
+
+        self.assertIn('source.course_id = %(course_id_0_canonical)s', course_filter)
+        self.assertNotIn('course_id_0_legacy', course_filter)
+        self.assertEqual(params, {'course_id_0_canonical': CCX_COURSE_ID})
+
+    def test_build_unfiltered_course_id_filter_prefers_canonical_rows(self):
+        course_filter, _params = build_unfiltered_course_id_filter(
+            'PROD.INSIGHTS.COURSE_META_SUMMARY_ENROLLMENT',
+            'course_id',
+            scope_columns=('enrollment_mode',),
+        )
+
+        self.assertIn("POSITION('/' IN source.course_id)", course_filter)
+        self.assertIn("CONCAT('course-v1:', REPLACE(source.course_id, '/', '+'))", course_filter)
+        self.assertIn('EQUAL_NULL(canonical.enrollment_mode, source.enrollment_mode)', course_filter)
+
+    def test_build_preferred_course_id_filter_groups_multiple_clauses(self):
+        course_filter, _params = build_preferred_course_id_filter(
+            'PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY',
+            'course_id',
+            [COURSE_ID, SECOND_COURSE_ID],
+            prefix='AND',
+        )
+
+        self.assertTrue(course_filter.startswith('AND ('))
+        self.assertTrue(course_filter.endswith(')'))
+        self.assertIn(' OR (source.course_id = %(course_id_1_canonical)s', course_filter)
+
+
 VALID_CONFIG = {
     'ACCOUNT': 'edx.us-east-1',
     'USER': 'INSIGHTS_API_SERVICE_USER',
@@ -150,7 +267,9 @@ class InsightsSnowflakeActivityQueryTests(SimpleTestCase):
         self.assertEqual(rows, [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}])
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('SELECT MAX(interval_end)', sql)
-        self.assertEqual(params, {'course_id': 'course-v1:edX+DemoX+Demo_Course'})
+        self.assertIn('source.course_id = %(course_id_0_canonical)s', sql)
+        self.assertIn('latest.course_id = %(course_id_0_canonical)s', sql)
+        self.assertEqual(params, COURSE_ID_PARAMS)
 
     @patch('analytics_data_api.insights_snowflake.queries.activity.fetch_all')
     @patch(
@@ -171,7 +290,7 @@ class InsightsSnowflakeActivityQueryTests(SimpleTestCase):
         self.assertIn('interval_start >= %(start_date)s', sql)
         self.assertIn('interval_end < %(end_date)s', sql)
         self.assertEqual(params, {
-            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            **COURSE_ID_PARAMS,
             'start_date': start_date,
             'end_date': end_date,
         })
@@ -193,7 +312,9 @@ class InsightsSnowflakeEnrollmentQueryTests(SimpleTestCase):
         self.assertEqual(rows, [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}])
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('SELECT MAX("DATE")', sql)
-        self.assertEqual(params, {'course_id': 'course-v1:edX+DemoX+Demo_Course'})
+        self.assertIn('source.course_id = %(course_id_0_canonical)s', sql)
+        self.assertIn('latest.course_id = %(course_id_0_canonical)s', sql)
+        self.assertEqual(params, COURSE_ID_PARAMS)
 
     @patch('analytics_data_api.insights_snowflake.queries.enrollment.fetch_all')
     @patch(
@@ -214,7 +335,7 @@ class InsightsSnowflakeEnrollmentQueryTests(SimpleTestCase):
         self.assertIn('"DATE" >= %(start_date)s', sql)
         self.assertIn('"DATE" < %(end_date)s', sql)
         self.assertEqual(params, {
-            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            **COURSE_ID_PARAMS,
             'start_date': start_date.date(),
             'end_date': end_date.date(),
         })
@@ -236,7 +357,7 @@ class InsightsSnowflakeEnrollmentQueryTests(SimpleTestCase):
 
         _sql, params = mock_fetch_all.call_args[0]
         self.assertEqual(params, {
-            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            **COURSE_ID_PARAMS,
             'start_date': start_date,
             'end_date': end_date,
         })
@@ -262,7 +383,7 @@ class InsightsSnowflakeEnrollmentQueryTests(SimpleTestCase):
             mock_get_table_name.assert_called_once_with(table)
             sql, params = _mock_fetch_all.call_args[0]
             self.assertIn(expected_column, sql)
-            self.assertEqual(params, {'course_id': course_id})
+            self.assertEqual(params, COURSE_ID_PARAMS)
 
 
 class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
@@ -282,6 +403,7 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('FROM PROD.INSIGHTS.COURSE_META_SUMMARY_ENROLLMENT', sql)
         self.assertNotIn('WHERE course_id IN', sql)
+        self.assertIn("POSITION('/' IN source.course_id)", sql)
         self.assertEqual(params, {})
 
     @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
@@ -303,10 +425,13 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
 
             mock_get_table_name.assert_called_once_with(table)
             sql, params = _mock_fetch_all.call_args[0]
-            self.assertIn('course_id IN (%(course_id_0)s, %(course_id_1)s)', sql)
+            self.assertIn('source.course_id = %(course_id_0_canonical)s', sql)
+            self.assertIn('source.course_id = %(course_id_1_canonical)s', sql)
             self.assertEqual(params, {
-                'course_id_0': course_ids[0],
-                'course_id_1': course_ids[1],
+                'course_id_0_canonical': course_ids[0],
+                'course_id_0_legacy': 'edX/DemoX/Demo_Course',
+                'course_id_1_canonical': course_ids[1],
+                'course_id_1_legacy': 'edX/DemoX/Demo_2014',
             })
 
     @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
@@ -324,11 +449,30 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
 
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('FROM PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY', sql)
-        self.assertIn('AND course_id IN (%(course_id_0)s)', sql)
+        self.assertIn('AND (source.course_id = %(course_id_0_canonical)s', sql)
+        self.assertIn('EQUAL_NULL(canonical_0."DATE", source."DATE")', sql)
         self.assertEqual(params, {
             'recent_date': recent_date.date(),
-            'course_id_0': 'course-v1:edX+DemoX+Demo_Course',
+            **COURSE_ID_PARAMS,
         })
+
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.course_summaries.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY')
+    )
+    def test_get_course_recent_enrollment_rows_groups_multiple_course_filters(self, mock_fetch_all):
+        recent_date = datetime.date(2014, 1, 1)
+
+        get_course_recent_enrollment_rows(
+            course_ids=[COURSE_ID, SECOND_COURSE_ID],
+            recent_date=recent_date,
+        )
+
+        sql, _params = mock_fetch_all.call_args[0]
+        self.assertIn('WHERE "DATE" = %(recent_date)s\nAND (', sql)
+        self.assertIn(' OR (source.course_id = %(course_id_1_canonical)s', sql)
+        self.assertTrue(sql.split('ORDER BY')[0].rstrip().endswith('))'))
 
     @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
     @patch('analytics_data_api.insights_snowflake.queries.course_summaries.get_qualified_table_name')
@@ -341,6 +485,7 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
         mock_get_table_name.assert_called_once_with(COURSE_ENROLLMENT_DAILY_TABLE)
         sql, params = _mock_fetch_all.call_args[0]
         self.assertNotIn('AND course_id IN', sql)
+        self.assertIn("POSITION('/' IN source.course_id)", sql)
         self.assertEqual(params, {'recent_date': recent_date})
 
 
@@ -398,8 +543,8 @@ class InsightsSnowflakeVideoQueryTests(SimpleTestCase):
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('FROM PROD.INSIGHTS.VIDEO', sql)
         self.assertIn('courserun_key AS course_id', sql)
-        self.assertIn('WHERE courserun_key = %(course_id)s', sql)
-        self.assertEqual(params, {'course_id': course_id})
+        self.assertIn('source.courserun_key = %(course_id_0_canonical)s', sql)
+        self.assertEqual(params, COURSE_ID_PARAMS)
 
     @patch('analytics_data_api.insights_snowflake.queries.videos.fetch_all')
     @patch('analytics_data_api.insights_snowflake.queries.videos.get_qualified_table_name')
@@ -411,7 +556,7 @@ class InsightsSnowflakeVideoQueryTests(SimpleTestCase):
         mock_get_table_name.assert_called_once_with(VIDEO_TABLE)
         sql, params = _mock_fetch_all.call_args[0]
         self.assertIn('ORDER BY pipeline_video_id', sql)
-        self.assertEqual(params, {'course_id': 'course-v1:edX+DemoX+Demo_Course'})
+        self.assertEqual(params, COURSE_ID_PARAMS)
 
         mock_get_table_name.reset_mock()
         _mock_fetch_all.reset_mock()
@@ -443,8 +588,8 @@ class InsightsSnowflakePerformanceQueryTests(SimpleTestCase):
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('FROM PROD.INSIGHTS.PROBLEM_ANSWER_DISTRIBUTION', sql)
         self.assertIn('LISTAGG(DISTINCT part_id', sql)
-        self.assertIn('WHERE course_id = %(course_id)s', sql)
-        self.assertEqual(params, {'course_id': course_id})
+        self.assertIn('source.course_id = %(course_id_0_canonical)s', sql)
+        self.assertEqual(params, COURSE_ID_PARAMS)
 
     @patch('analytics_data_api.insights_snowflake.queries.performance.fetch_all')
     @patch('analytics_data_api.insights_snowflake.queries.performance.get_qualified_table_name')
@@ -475,7 +620,7 @@ class InsightsSnowflakeActivityMapperTests(SimpleTestCase):
 
         rows = [
             {
-                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'course_id': 'edX/DemoX/Demo_Course',
                 'interval_start': interval_start,
                 'interval_end': interval_end,
                 'activity_label': 'PLAYED_VIDEO',
@@ -483,7 +628,7 @@ class InsightsSnowflakeActivityMapperTests(SimpleTestCase):
                 'created': later_created,
             },
             {
-                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'course_id': 'edX/DemoX/Demo_Course',
                 'interval_start': interval_start,
                 'interval_end': interval_end,
                 'activity_label': 'ACTIVE',
@@ -523,6 +668,22 @@ class InsightsSnowflakeActivityMapperTests(SimpleTestCase):
             'any': 300,
         }])
 
+    def test_map_course_activity_weekly_rows_preserves_invalid_stored_ids(self):
+        interval_start = datetime.datetime(2014, 1, 1, tzinfo=datetime.timezone.utc)
+        interval_end = datetime.datetime(2014, 1, 8, tzinfo=datetime.timezone.utc)
+        created = datetime.datetime(2014, 1, 9, tzinfo=datetime.timezone.utc)
+
+        rows = [{
+            'course_id': None,
+            'interval_start': interval_start,
+            'interval_end': interval_end,
+            'activity_label': 'ACTIVE',
+            'activity_count': 1,
+            'created': created,
+        }]
+
+        self.assertEqual(map_course_activity_weekly_rows(rows)[0]['course_id'], None)
+
 
 class InsightsSnowflakeEnrollmentMapperTests(SimpleTestCase):
     """Cover Snowflake enrollment row mapping into the existing API shapes."""
@@ -531,7 +692,7 @@ class InsightsSnowflakeEnrollmentMapperTests(SimpleTestCase):
         date = datetime.date(2014, 1, 1)
         created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
         rows = [{
-            'COURSE_ID': 'course-v1:edX+DemoX+Demo_Course',
+            'COURSE_ID': 'edX/DemoX/Demo_Course',
             'DATE': date,
             'COUNT': 203,
             'CREATED': created,
@@ -562,6 +723,16 @@ class InsightsSnowflakeEnrollmentMapperTests(SimpleTestCase):
             'count': 25,
             'created': created,
         }])
+
+    def test_map_course_enrollment_daily_rows_preserves_invalid_stored_ids(self):
+        rows = [{
+            'course_id': 'not-a-course-key',
+            'date': datetime.date(2014, 1, 1),
+            'count': 1,
+            'created': datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc),
+        }]
+
+        self.assertEqual(map_course_enrollment_daily_rows(rows)[0]['course_id'], 'not-a-course-key')
 
     def test_map_course_enrollment_mode_rows_pivots_modes(self):
         date = datetime.date(2014, 1, 1)
@@ -803,14 +974,28 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
                 'CREATED': later_created,
             },
         ]
-        program_rows = [{
-            'course_id': course_id,
-            'program_id': 'program-1',
-        }]
-        recent_rows = [{
-            'course_id': course_id,
-            'count': 2,
-        }]
+        program_rows = [
+            {
+                'course_id': LEGACY_COURSE_ID,
+                'program_id': 'program-1',
+            },
+            {
+                'course_id': course_id,
+                'program_id': 'program-1',
+            },
+        ]
+        recent_rows = [
+            {
+                'course_id': LEGACY_COURSE_ID,
+                'count': 2,
+                'date': datetime.date(2014, 1, 1),
+            },
+            {
+                'course_id': course_id,
+                'count': 2,
+                'date': datetime.date(2014, 1, 1),
+            },
+        ]
 
         mapped_rows = map_course_summary_rows(
             summary_rows,
@@ -833,6 +1018,73 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
         self.assertNotIn(enrollment_modes.PROFESSIONAL_NO_ID, summary['enrollment_modes'])
         self.assertEqual(summary['enrollment_modes'][enrollment_modes.PROFESSIONAL]['count'], 7)
         self.assertNotIn('passing_users', summary['enrollment_modes'][enrollment_modes.PROFESSIONAL])
+
+    def test_map_course_summary_rows_deduplicates_unfiltered_mixed_format_rows(self):
+        row = {
+            'CATALOG_COURSE_TITLE': 'Title',
+            'CATALOG_COURSE': 'Catalog',
+            'START_TIME': None,
+            'END_TIME': None,
+            'PACING_TYPE': 'instructor',
+            'AVAILABILITY': 'Available Now',
+            'ENROLLMENT_MODE': 'audit',
+            'COUNT': 10,
+            'CUMULATIVE_COUNT': 10,
+            'COUNT_CHANGE_7_DAYS': 1,
+            'PASSING_USERS': 2,
+            'CREATED': datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc),
+        }
+        canonical_row = dict(row, COURSE_ID=COURSE_ID)
+        legacy_row = dict(row, COURSE_ID=LEGACY_COURSE_ID)
+
+        mapped_rows = map_course_summary_rows([canonical_row, legacy_row])
+
+        self.assertEqual(len(mapped_rows), 1)
+        self.assertEqual(mapped_rows[0]['course_id'], COURSE_ID)
+        self.assertEqual(mapped_rows[0]['count'], 10)
+        self.assertEqual(mapped_rows[0]['enrollment_modes']['audit']['count'], 10)
+
+    def test_map_course_summary_rows_preserves_invalid_stored_ids(self):
+        row = {
+            'COURSE_ID': None,
+            'CATALOG_COURSE_TITLE': 'Title',
+            'CATALOG_COURSE': 'Catalog',
+            'START_TIME': None,
+            'END_TIME': None,
+            'PACING_TYPE': 'instructor',
+            'AVAILABILITY': 'Available Now',
+            'ENROLLMENT_MODE': 'audit',
+            'COUNT': 1,
+            'CUMULATIVE_COUNT': 1,
+            'COUNT_CHANGE_7_DAYS': 0,
+            'PASSING_USERS': 0,
+            'CREATED': datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc),
+        }
+
+        mapped_rows = map_course_summary_rows([row])
+
+        self.assertEqual(mapped_rows[0]['course_id'], None)
+
+    def test_map_course_summary_rows_preserves_ccx_course_ids(self):
+        row = {
+            'COURSE_ID': CCX_COURSE_ID,
+            'CATALOG_COURSE_TITLE': 'Title',
+            'CATALOG_COURSE': 'Catalog',
+            'START_TIME': None,
+            'END_TIME': None,
+            'PACING_TYPE': 'instructor',
+            'AVAILABILITY': 'Available Now',
+            'ENROLLMENT_MODE': 'audit',
+            'COUNT': 1,
+            'CUMULATIVE_COUNT': 1,
+            'COUNT_CHANGE_7_DAYS': 0,
+            'PASSING_USERS': 0,
+            'CREATED': datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc),
+        }
+
+        mapped_rows = map_course_summary_rows([row])
+
+        self.assertEqual(mapped_rows[0]['course_id'], CCX_COURSE_ID)
 
     def test_map_course_summary_rows_handles_null_sort_values(self):
         course_id = 'course-v1:edX+DemoX+Demo_Course'

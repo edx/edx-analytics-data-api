@@ -3,6 +3,10 @@
 import datetime
 
 from analytics_data_api.insights_snowflake.client import fetch_all, get_qualified_table_name
+from analytics_data_api.insights_snowflake.course_ids import (
+    build_preferred_course_id_filter,
+    build_unfiltered_course_id_filter,
+)
 
 COURSE_META_SUMMARY_ENROLLMENT_TABLE = 'COURSE_META_SUMMARY_ENROLLMENT'
 COURSE_PROGRAM_METADATA_TABLE = 'COURSE_PROGRAM_METADATA'
@@ -16,25 +20,25 @@ def _date_value(value):
     return value
 
 
-def _in_filter(column_name, param_prefix, values, prefix='WHERE'):
-    """Return a parameterized Snowflake IN filter for controlled columns."""
-    if not values:
-        return '', {}
-
-    params = {}
-    placeholders = []
-    for index, value in enumerate(values):
-        param_name = '{}_{}'.format(param_prefix, index)
-        params[param_name] = value
-        placeholders.append('%({})s'.format(param_name))
-
-    return '{} {} IN ({})'.format(prefix, column_name, ', '.join(placeholders)), params
-
-
 def get_course_summary_rows(course_ids=None):
     """Return Snowflake rows for course summary enrollment metadata."""
     table_name = get_qualified_table_name(COURSE_META_SUMMARY_ENROLLMENT_TABLE)
-    where_clause, params = _in_filter('course_id', 'course_id', course_ids)
+    if course_ids:
+        where_clause, params = build_preferred_course_id_filter(
+            table_name,
+            'course_id',
+            course_ids,
+            alias='source',
+            scope_columns=('enrollment_mode',),
+        )
+    else:
+        where_clause, params = build_unfiltered_course_id_filter(
+            table_name,
+            'course_id',
+            alias='source',
+            scope_columns=('enrollment_mode',),
+        )
+    from_clause = '{} AS source'.format(table_name)
     sql = """
 SELECT
     course_id,
@@ -50,10 +54,10 @@ SELECT
     count_change_7_days,
     passing_users,
     created
-FROM {table_name}
+FROM {from_clause}
 {where_clause}
 ORDER BY course_id, enrollment_mode
-""".format(table_name=table_name, where_clause=where_clause)
+""".format(from_clause=from_clause, where_clause=where_clause)
 
     return fetch_all(sql, params)
 
@@ -61,7 +65,22 @@ ORDER BY course_id, enrollment_mode
 def get_course_summary_program_rows(course_ids=None):
     """Return Snowflake program metadata rows for course summaries."""
     table_name = get_qualified_table_name(COURSE_PROGRAM_METADATA_TABLE)
-    where_clause, params = _in_filter('course_id', 'course_id', course_ids)
+    if course_ids:
+        where_clause, params = build_preferred_course_id_filter(
+            table_name,
+            'course_id',
+            course_ids,
+            alias='source',
+            scope_columns=('program_id',),
+        )
+    else:
+        where_clause, params = build_unfiltered_course_id_filter(
+            table_name,
+            'course_id',
+            alias='source',
+            scope_columns=('program_id',),
+        )
+    from_clause = '{} AS source'.format(table_name)
     sql = """
 SELECT
     course_id,
@@ -69,10 +88,10 @@ SELECT
     program_type,
     program_title,
     created
-FROM {table_name}
+FROM {from_clause}
 {where_clause}
 ORDER BY course_id, program_id
-""".format(table_name=table_name, where_clause=where_clause)
+""".format(from_clause=from_clause, where_clause=where_clause)
 
     return fetch_all(sql, params)
 
@@ -80,7 +99,24 @@ ORDER BY course_id, program_id
 def get_course_recent_enrollment_rows(course_ids=None, recent_date=None):
     """Return Snowflake course enrollment rows for the requested recent date."""
     table_name = get_qualified_table_name(COURSE_ENROLLMENT_DAILY_TABLE)
-    course_filter, course_params = _in_filter('course_id', 'course_id', course_ids, prefix='AND')
+    if course_ids:
+        course_filter, course_params = build_preferred_course_id_filter(
+            table_name,
+            'course_id',
+            course_ids,
+            alias='source',
+            prefix='AND',
+            scope_columns=('"DATE"',),
+        )
+    else:
+        course_filter, course_params = build_unfiltered_course_id_filter(
+            table_name,
+            'course_id',
+            alias='source',
+            prefix='AND',
+            scope_columns=('"DATE"',),
+        )
+    from_clause = '{} AS source'.format(table_name)
     params = {
         'recent_date': _date_value(recent_date),
     }
@@ -91,10 +127,10 @@ SELECT
     "DATE" AS date,
     "COUNT" AS count,
     created
-FROM {table_name}
+FROM {from_clause}
 WHERE "DATE" = %(recent_date)s
 {course_filter}
 ORDER BY course_id
-""".format(table_name=table_name, course_filter=course_filter)
+""".format(from_clause=from_clause, course_filter=course_filter)
 
     return fetch_all(sql, params)
