@@ -442,7 +442,7 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('FROM PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY', sql)
         self.assertIn('AND (source.course_id = %(course_id_0_canonical)s', sql)
-        self.assertIn('canonical_0."DATE" = source."DATE"', sql)
+        self.assertIn('EQUAL_NULL(canonical_0."DATE", source."DATE")', sql)
         self.assertEqual(params, {
             'recent_date': recent_date.date(),
             **COURSE_ID_PARAMS,
