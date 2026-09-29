@@ -15,6 +15,7 @@ def get_course_problem_rows(course_id):
         [course_id],
         alias='source',
         prefix='',
+        scope_columns=('module_id', 'part_id'),
     )
     sql = """
 SELECT

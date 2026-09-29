@@ -3,7 +3,7 @@
 from itertools import groupby
 
 from analytics_data_api.constants import enrollment_modes, genders
-from analytics_data_api.insights_snowflake.course_ids import get_canonical_course_id
+from analytics_data_api.insights_snowflake.course_ids import get_response_course_id
 from analytics_data_api.v0 import models
 
 GENDER_FIELD_MAP = {
@@ -26,7 +26,7 @@ def _row_value(row, name):
 def _copy_fields(row, field_names):
     """Return an API-shaped dictionary with selected fields from a Snowflake row."""
     return {
-        field_name: get_canonical_course_id(_row_value(row, field_name))
+        field_name: get_response_course_id(_row_value(row, field_name))
         if field_name == 'course_id' else _row_value(row, field_name)
         for field_name in field_names
     }
@@ -34,7 +34,7 @@ def _copy_fields(row, field_names):
 
 def _course_id(row):
     """Return the canonical course ID from a Snowflake row."""
-    return get_canonical_course_id(_row_value(row, 'course_id'))
+    return get_response_course_id(_row_value(row, 'course_id'))
 
 
 def _gender_field(gender):
@@ -62,7 +62,7 @@ def map_course_enrollment_education_rows(rows):
 
 def map_course_enrollment_mode_rows(rows):
     """Pivot enrollment mode rows into the existing API shape."""
-    rows = sorted(rows or [], key=lambda row: (_course_id(row), _row_value(row, 'date')))
+    rows = sorted(rows or [], key=lambda row: (_course_id(row) or '', _row_value(row, 'date')))
     formatted_data = []
 
     for key, group in groupby(rows, lambda row: (_course_id(row), _row_value(row, 'date'))):
@@ -97,7 +97,7 @@ def map_course_enrollment_mode_rows(rows):
 
 def map_course_enrollment_gender_rows(rows):
     """Pivot enrollment gender rows into the existing API shape."""
-    rows = sorted(rows or [], key=lambda row: (_course_id(row), _row_value(row, 'date')))
+    rows = sorted(rows or [], key=lambda row: (_course_id(row) or '', _row_value(row, 'date')))
     formatted_data = []
 
     for key, group in groupby(rows, lambda row: (_course_id(row), _row_value(row, 'date'))):
@@ -134,7 +134,7 @@ def map_course_enrollment_location_rows(rows):
         )
         for row in rows or []
     ]
-    items = sorted(items, key=lambda item: (item.date, item.country.alpha2 or '', item.course_id))
+    items = sorted(items, key=lambda item: (item.date, item.country.alpha2 or '', item.course_id or ''))
     returned_items = []
 
     for key, group in groupby(items, lambda item: (item.date, item.country.alpha2, item.course_id)):

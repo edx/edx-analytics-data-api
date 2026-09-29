@@ -16,6 +16,7 @@ def get_course_video_rows(course_id):
         [course_id],
         alias='source',
         prefix='',
+        scope_columns=('pipeline_video_id',),
     )
     sql = """
 SELECT

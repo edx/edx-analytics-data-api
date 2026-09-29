@@ -15,6 +15,7 @@ def get_course_activity_weekly_rows(course_id, start_date=None, end_date=None):
         [course_id],
         alias='source',
         prefix='',
+        scope_columns=('interval_start', 'interval_end', 'label'),
     )
 
     if start_date or end_date:
@@ -43,6 +44,7 @@ ORDER BY course_id, interval_start, interval_end, label
             [course_id],
             alias='latest',
             prefix='',
+            scope_columns=('interval_start', 'interval_end', 'label'),
         )
         sql = """
 SELECT

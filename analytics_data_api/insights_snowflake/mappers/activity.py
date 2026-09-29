@@ -2,7 +2,7 @@
 
 from itertools import groupby
 
-from analytics_data_api.insights_snowflake.course_ids import get_canonical_course_id
+from analytics_data_api.insights_snowflake.course_ids import get_response_course_id
 
 ACTIVITY_FIELD_MAP = {
     'active': 'any',
@@ -27,7 +27,7 @@ def _activity_field(activity_label):
 
 def _course_id(row):
     """Return the canonical course ID from a Snowflake row."""
-    return get_canonical_course_id(_row_value(row, 'course_id'))
+    return get_response_course_id(_row_value(row, 'course_id'))
 
 
 def map_course_activity_weekly_rows(rows):
@@ -35,7 +35,7 @@ def map_course_activity_weekly_rows(rows):
     rows = sorted(
         rows or [],
         key=lambda row: (
-            _course_id(row),
+            _course_id(row) or '',
             _row_value(row, 'interval_start'),
             _row_value(row, 'interval_end'),
         )
