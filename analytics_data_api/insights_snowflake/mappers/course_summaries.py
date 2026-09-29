@@ -5,10 +5,7 @@ from itertools import groupby
 from opaque_keys import InvalidKeyError
 
 from analytics_data_api.constants import enrollment_modes
-from analytics_data_api.insights_snowflake.course_ids import (
-    get_course_id_variants,
-    get_response_course_id,
-)
+from analytics_data_api.insights_snowflake.course_ids import get_course_id_variants, get_response_course_id
 
 COUNT_FIELDS = ('count', 'cumulative_count', 'count_change_7_days', 'passing_users')
 SUMMARY_META_FIELDS = (
