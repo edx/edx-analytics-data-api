@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 from django.test import SimpleTestCase, override_settings
 from opaque_keys import InvalidKeyError
+from opaque_keys.edx.keys import CourseKey
 from rest_framework.response import Response
 
 from analytics_data_api.constants import country, enrollment_modes, genders
@@ -119,7 +120,7 @@ class InsightsSnowflakeCourseIdTests(SimpleTestCase):
         legacy_course_id = 'edX/Demo%20X/run'
         mock_from_string.side_effect = [
             Mock(org='edX', course='Demo%20X', run='run'),
-            InvalidKeyError(),
+            InvalidKeyError(CourseKey, legacy_course_id),
         ]
 
         self.assertEqual(get_course_id_variants(legacy_course_id), (legacy_course_id, None))
