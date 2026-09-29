@@ -847,6 +847,14 @@ class CourseActivityWeeklyViewTests(CourseViewTestCaseMixin, TestCaseWithAuthent
         self.assertEqual(response.status_code, 404)
         mock_get_activity.assert_called_once_with(course_id, None, None)
 
+    def test_get_returns_400_for_malformed_course_id(self):
+        with patch('analytics_data_api.v0.views.courses.is_course_activity_snowflake_enabled', return_value=True), \
+                patch('analytics_data_api.v0.views.courses.get_course_activity_weekly') as mock_get_activity:
+            response = self.authenticated_get('/api/v1/courses/edX+DemoX+Demo_Course/activity/')
+
+        self.assertEqual(response.status_code, 400)
+        mock_get_activity.assert_not_called()
+
     @ddt.data(*CourseSamples.course_ids)
     def test_get_with_intervals(self, course_id):
         """ Verify the endpoint returns multiple data points when supplied with an interval of dates. """

@@ -13,6 +13,11 @@ def get_course_id_variants(course_id):
     return canonical_course_id, legacy_course_id
 
 
+def get_canonical_course_id(course_id):
+    """Return the canonical course ID for either supported representation."""
+    return get_course_id_variants(course_id)[0]
+
+
 def build_preferred_course_id_filter(
     table_name,
     column_name,
@@ -63,8 +68,5 @@ def build_preferred_course_id_filter(
             )
         )
 
-    if not clauses:
-        return '', {}
-
-    condition = ' OR '.join(clauses)
+    condition = '({})'.format(' OR '.join(clauses))
     return '{} {}'.format(prefix, condition) if prefix else condition, params

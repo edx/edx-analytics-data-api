@@ -93,6 +93,7 @@ from analytics_data_api.snowflake_client import SnowflakeConfigurationError
 
 COURSE_ID = 'course-v1:edX+DemoX+Demo_Course'
 LEGACY_COURSE_ID = 'edX/DemoX/Demo_Course'
+SECOND_COURSE_ID = 'course-v1:edX+DemoX+Demo_2014'
 COURSE_ID_PARAMS = {
     'course_id_0_canonical': COURSE_ID,
     'course_id_0_legacy': LEGACY_COURSE_ID,
@@ -117,6 +118,18 @@ class InsightsSnowflakeCourseIdTests(SimpleTestCase):
         self.assertNotIn('course_id_1_canonical', course_filter)
         self.assertEqual(params, COURSE_ID_PARAMS)
         self.assertIn('NOT EXISTS', course_filter)
+
+    def test_build_preferred_course_id_filter_groups_multiple_clauses(self):
+        course_filter, _params = build_preferred_course_id_filter(
+            'PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY',
+            'course_id',
+            [COURSE_ID, SECOND_COURSE_ID],
+            prefix='AND',
+        )
+
+        self.assertTrue(course_filter.startswith('AND ('))
+        self.assertTrue(course_filter.endswith(')'))
+        self.assertIn(' OR (source.course_id = %(course_id_1_canonical)s', course_filter)
 
 
 VALID_CONFIG = {
@@ -367,6 +380,24 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
         })
 
     @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.course_summaries.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY')
+    )
+    def test_get_course_recent_enrollment_rows_groups_multiple_course_filters(self, mock_fetch_all):
+        recent_date = datetime.date(2014, 1, 1)
+
+        get_course_recent_enrollment_rows(
+            course_ids=[COURSE_ID, SECOND_COURSE_ID],
+            recent_date=recent_date,
+        )
+
+        sql, _params = mock_fetch_all.call_args[0]
+        self.assertIn('WHERE "DATE" = %(recent_date)s\nAND (', sql)
+        self.assertIn(' OR (source.course_id = %(course_id_1_canonical)s', sql)
+        self.assertTrue(sql.split('ORDER BY')[0].rstrip().endswith('))'))
+
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
     @patch('analytics_data_api.insights_snowflake.queries.course_summaries.get_qualified_table_name')
     def test_get_course_recent_enrollment_rows_uses_expected_table(self, mock_get_table_name, _mock_fetch_all):
         mock_get_table_name.return_value = 'PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY'
@@ -511,7 +542,7 @@ class InsightsSnowflakeActivityMapperTests(SimpleTestCase):
 
         rows = [
             {
-                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'course_id': 'edX/DemoX/Demo_Course',
                 'interval_start': interval_start,
                 'interval_end': interval_end,
                 'activity_label': 'PLAYED_VIDEO',
@@ -519,7 +550,7 @@ class InsightsSnowflakeActivityMapperTests(SimpleTestCase):
                 'created': later_created,
             },
             {
-                'course_id': 'course-v1:edX+DemoX+Demo_Course',
+                'course_id': 'edX/DemoX/Demo_Course',
                 'interval_start': interval_start,
                 'interval_end': interval_end,
                 'activity_label': 'ACTIVE',
@@ -567,7 +598,7 @@ class InsightsSnowflakeEnrollmentMapperTests(SimpleTestCase):
         date = datetime.date(2014, 1, 1)
         created = datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc)
         rows = [{
-            'COURSE_ID': 'course-v1:edX+DemoX+Demo_Course',
+            'COURSE_ID': 'edX/DemoX/Demo_Course',
             'DATE': date,
             'COUNT': 203,
             'CREATED': created,
@@ -840,11 +871,11 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
             },
         ]
         program_rows = [{
-            'course_id': course_id,
+            'course_id': LEGACY_COURSE_ID,
             'program_id': 'program-1',
         }]
         recent_rows = [{
-            'course_id': course_id,
+            'course_id': LEGACY_COURSE_ID,
             'count': 2,
         }]
 

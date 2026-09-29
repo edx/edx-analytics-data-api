@@ -36,7 +36,7 @@ from analytics_data_api.utils import dictfetchall, get_course_report_download_de
 from analytics_data_api.v0 import models, serializers
 from analytics_data_api.v0.exceptions import ReportFileNotFoundError
 from analytics_data_api.v0.models import ModuleEngagement, ProblemResponseAnswerDistribution
-from analytics_data_api.v0.views.utils import raise_404_if_none
+from analytics_data_api.v0.views.utils import raise_404_if_none, validate_course_id
 
 
 class BaseCourseView(generics.ListAPIView):
@@ -48,6 +48,7 @@ class BaseCourseView(generics.ListAPIView):
 
     def get(self, request, *args, **kwargs):
         self.course_id = self.kwargs.get('course_id')
+        validate_course_id(self.course_id)
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
         timezone = datetime.timezone.utc

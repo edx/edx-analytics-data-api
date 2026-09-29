@@ -3,6 +3,7 @@
 from itertools import groupby
 
 from analytics_data_api.constants import enrollment_modes
+from analytics_data_api.insights_snowflake.course_ids import get_canonical_course_id
 
 COUNT_FIELDS = ('count', 'cumulative_count', 'count_change_7_days', 'passing_users')
 SUMMARY_META_FIELDS = (
@@ -27,6 +28,11 @@ def _count_value(row, name):
     return int(_row_value(row, name) or 0)
 
 
+def _course_id(row):
+    """Return the canonical course ID from a Snowflake row."""
+    return get_canonical_course_id(_row_value(row, 'course_id'))
+
+
 def _base_course_summary(course_id):
     """Return the default course summary shape used by the existing API."""
     summary = {
@@ -47,14 +53,14 @@ def _programs_by_course(program_rows):
     """Return program IDs grouped by course ID."""
     programs = {}
     for row in program_rows or []:
-        programs.setdefault(_row_value(row, 'course_id'), []).append(_row_value(row, 'program_id'))
+        programs.setdefault(_course_id(row), []).append(_row_value(row, 'program_id'))
     return programs
 
 
 def _recent_counts_by_course(recent_rows):
     """Return recent enrollment counts keyed by course ID."""
     return {
-        _row_value(row, 'course_id'): _count_value(row, 'count')
+        _course_id(row): _count_value(row, 'count')
         for row in recent_rows or []
     }
 
@@ -82,7 +88,7 @@ def map_course_summary_rows(summary_rows, program_rows=None, recent_rows=None, e
     rows = sorted(
         summary_rows or [],
         key=lambda row: (
-            _row_value(row, 'course_id') or '',
+            _course_id(row) or '',
             _row_value(row, 'enrollment_mode') or '',
         ),
     )
@@ -90,7 +96,7 @@ def map_course_summary_rows(summary_rows, program_rows=None, recent_rows=None, e
     recent_counts = _recent_counts_by_course(recent_rows) if recent_rows is not None else None
     summaries = []
 
-    for course_id, group in groupby(rows, lambda row: _row_value(row, 'course_id')):
+    for course_id, group in groupby(rows, _course_id):
         summary = _base_course_summary(course_id)
 
         for row in group:
