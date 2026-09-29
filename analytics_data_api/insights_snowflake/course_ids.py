@@ -16,6 +16,13 @@ def get_course_id_variants(course_id):
     represented by the plain course forms.
     """
     course_key = CourseKey.from_string(course_id)
+    is_legacy_course_id = isinstance(course_id, str) and course_id.count('/') == 2 and ':' not in course_id
+    if is_legacy_course_id:
+        canonical_course_id = str(CourseKey.from_string(
+            'course-v1:{}+{}+{}'.format(course_key.org, course_key.course, course_key.run)
+        ))
+        return canonical_course_id, course_id
+
     canonical_course_id = str(course_key)
     if not canonical_course_id.startswith('course-v1:'):
         return canonical_course_id, None
@@ -112,7 +119,7 @@ def build_preferred_course_id_filter(
             )
         )
 
-    condition = '({})'.format(' OR '.join(clauses))
+    condition = clauses[0] if len(clauses) == 1 else '({})'.format(' OR '.join(clauses))
     return '{} {}'.format(prefix, condition) if prefix else condition, params
 
 
