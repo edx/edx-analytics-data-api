@@ -111,6 +111,14 @@ COURSE_ID_PARAMS = {
 class InsightsSnowflakeCourseIdTests(SimpleTestCase):
     """Cover canonical and legacy course identifier query handling."""
 
+    def setUp(self):
+        super().setUp()
+        get_course_id_variants.cache_clear()
+
+    def tearDown(self):
+        get_course_id_variants.cache_clear()
+        super().tearDown()
+
     def test_get_course_id_variants_normalizes_legacy_and_canonical_values(self):
         self.assertEqual(get_course_id_variants(COURSE_ID), (COURSE_ID, LEGACY_COURSE_ID))
         self.assertEqual(get_course_id_variants(LEGACY_COURSE_ID), (COURSE_ID, LEGACY_COURSE_ID))
