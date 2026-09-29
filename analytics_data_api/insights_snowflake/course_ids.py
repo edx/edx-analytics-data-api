@@ -18,9 +18,12 @@ def get_course_id_variants(course_id):
     course_key = CourseKey.from_string(course_id)
     is_legacy_course_id = isinstance(course_id, str) and course_id.count('/') == 2 and ':' not in course_id
     if is_legacy_course_id:
-        canonical_course_id = str(CourseKey.from_string(
-            'course-v1:{}+{}+{}'.format(course_key.org, course_key.course, course_key.run)
-        ))
+        try:
+            canonical_course_id = str(CourseKey.from_string(
+                'course-v1:{}+{}+{}'.format(course_key.org, course_key.course, course_key.run)
+            ))
+        except InvalidKeyError:
+            return course_id, None
         return canonical_course_id, course_id
 
     canonical_course_id = str(course_key)
@@ -47,7 +50,7 @@ def get_response_course_id(course_id):
 def _scope_clause(alias, canonical_alias, scope_columns):
     """Build fixed-column equality predicates for format preference."""
     return ''.join(
-        ' AND {canonical_alias}.{column} = {alias}.{column}'.format(
+        ' AND EQUAL_NULL({canonical_alias}.{column}, {alias}.{column})'.format(
             canonical_alias=canonical_alias,
             alias=alias,
             column=column,

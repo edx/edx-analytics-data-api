@@ -4,6 +4,7 @@ import datetime
 from unittest.mock import Mock, patch
 
 from django.test import SimpleTestCase, override_settings
+from opaque_keys import InvalidKeyError
 from rest_framework.response import Response
 
 from analytics_data_api.constants import country, enrollment_modes, genders
@@ -113,6 +114,16 @@ class InsightsSnowflakeCourseIdTests(SimpleTestCase):
         self.assertEqual(get_course_id_variants(COURSE_ID), (COURSE_ID, LEGACY_COURSE_ID))
         self.assertEqual(get_course_id_variants(LEGACY_COURSE_ID), (COURSE_ID, LEGACY_COURSE_ID))
 
+    @patch('analytics_data_api.insights_snowflake.course_ids.CourseKey.from_string')
+    def test_get_course_id_variants_falls_back_for_unrepresentable_legacy_values(self, mock_from_string):
+        legacy_course_id = 'edX/Demo%20X/run'
+        mock_from_string.side_effect = [
+            Mock(org='edX', course='Demo%20X', run='run'),
+            InvalidKeyError(),
+        ]
+
+        self.assertEqual(get_course_id_variants(legacy_course_id), (legacy_course_id, None))
+
     def test_get_course_id_variants_preserves_specialized_course_keys(self):
         self.assertEqual(get_course_id_variants(CCX_COURSE_ID), (CCX_COURSE_ID, None))
 
@@ -140,7 +151,17 @@ class InsightsSnowflakeCourseIdTests(SimpleTestCase):
             scope_columns=('"DATE"',),
         )
 
-        self.assertIn('canonical_0."DATE" = source."DATE"', course_filter)
+        self.assertIn('EQUAL_NULL(canonical_0."DATE", source."DATE")', course_filter)
+
+    def test_build_preferred_course_id_filter_uses_null_safe_scope_comparison(self):
+        course_filter, _params = build_preferred_course_id_filter(
+            'PROD.INSIGHTS.COURSE_ENROLLMENT_GENDER_DAILY',
+            'course_id',
+            [COURSE_ID],
+            scope_columns=('gender',),
+        )
+
+        self.assertIn('EQUAL_NULL(canonical_0.gender, source.gender)', course_filter)
 
     def test_build_preferred_course_id_filter_does_not_convert_specialized_keys(self):
         course_filter, params = build_preferred_course_id_filter(
@@ -162,7 +183,7 @@ class InsightsSnowflakeCourseIdTests(SimpleTestCase):
 
         self.assertIn("POSITION('/' IN source.course_id)", course_filter)
         self.assertIn("CONCAT('course-v1:', REPLACE(source.course_id, '/', '+'))", course_filter)
-        self.assertIn('canonical.enrollment_mode = source.enrollment_mode', course_filter)
+        self.assertIn('EQUAL_NULL(canonical.enrollment_mode, source.enrollment_mode)', course_filter)
 
     def test_build_preferred_course_id_filter_groups_multiple_clauses(self):
         course_filter, _params = build_preferred_course_id_filter(
