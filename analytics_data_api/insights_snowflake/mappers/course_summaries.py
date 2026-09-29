@@ -61,11 +61,9 @@ def _drop_legacy_rows_when_canonical_exists(rows, scope_fields):
 
     return [
         row for row, raw_course_id, canonical_course_id, legacy_course_id, scope in row_details
-        if not (
-            legacy_course_id is not None
-            and raw_course_id == legacy_course_id
-            and (canonical_course_id, scope) in canonical_keys
-        )
+        if not (legacy_course_id is not None and
+                raw_course_id == legacy_course_id and
+                (canonical_course_id, scope) in canonical_keys)
     ]
 
 
