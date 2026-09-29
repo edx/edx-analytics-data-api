@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from analytics_data_api.constants import country, enrollment_modes, genders
 from analytics_data_api.insights_snowflake.client import fetch_all, get_qualified_table_name
+from analytics_data_api.insights_snowflake.course_ids import build_preferred_course_id_filter, get_course_id_variants
 from analytics_data_api.insights_snowflake.mappers.activity import map_course_activity_weekly_rows
 from analytics_data_api.insights_snowflake.mappers.course_summaries import map_course_summary_rows
 from analytics_data_api.insights_snowflake.mappers.enrollment import (
@@ -90,6 +91,34 @@ from analytics_data_api.insights_snowflake.toggles import (
 )
 from analytics_data_api.snowflake_client import SnowflakeConfigurationError
 
+COURSE_ID = 'course-v1:edX+DemoX+Demo_Course'
+LEGACY_COURSE_ID = 'edX/DemoX/Demo_Course'
+COURSE_ID_PARAMS = {
+    'course_id_0_canonical': COURSE_ID,
+    'course_id_0_legacy': LEGACY_COURSE_ID,
+}
+
+
+class InsightsSnowflakeCourseIdTests(SimpleTestCase):
+    """Cover canonical and legacy course identifier query handling."""
+
+    def test_get_course_id_variants_normalizes_legacy_and_canonical_values(self):
+        self.assertEqual(get_course_id_variants(COURSE_ID), (COURSE_ID, LEGACY_COURSE_ID))
+        self.assertEqual(get_course_id_variants(LEGACY_COURSE_ID), (COURSE_ID, LEGACY_COURSE_ID))
+
+    def test_build_preferred_course_id_filter_prefers_canonical_rows(self):
+        course_filter, params = build_preferred_course_id_filter(
+            'PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY',
+            'course_id',
+            [COURSE_ID, LEGACY_COURSE_ID],
+        )
+
+        self.assertEqual(course_filter.count('course_id_0_canonical'), 2)
+        self.assertNotIn('course_id_1_canonical', course_filter)
+        self.assertEqual(params, COURSE_ID_PARAMS)
+        self.assertIn('NOT EXISTS', course_filter)
+
+
 VALID_CONFIG = {
     'ACCOUNT': 'edx.us-east-1',
     'USER': 'INSIGHTS_API_SERVICE_USER',
@@ -150,7 +179,9 @@ class InsightsSnowflakeActivityQueryTests(SimpleTestCase):
         self.assertEqual(rows, [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}])
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('SELECT MAX(interval_end)', sql)
-        self.assertEqual(params, {'course_id': 'course-v1:edX+DemoX+Demo_Course'})
+        self.assertIn('source.course_id = %(course_id_0_canonical)s', sql)
+        self.assertIn('latest.course_id = %(course_id_0_canonical)s', sql)
+        self.assertEqual(params, COURSE_ID_PARAMS)
 
     @patch('analytics_data_api.insights_snowflake.queries.activity.fetch_all')
     @patch(
@@ -171,7 +202,7 @@ class InsightsSnowflakeActivityQueryTests(SimpleTestCase):
         self.assertIn('interval_start >= %(start_date)s', sql)
         self.assertIn('interval_end < %(end_date)s', sql)
         self.assertEqual(params, {
-            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            **COURSE_ID_PARAMS,
             'start_date': start_date,
             'end_date': end_date,
         })
@@ -193,7 +224,9 @@ class InsightsSnowflakeEnrollmentQueryTests(SimpleTestCase):
         self.assertEqual(rows, [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}])
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('SELECT MAX("DATE")', sql)
-        self.assertEqual(params, {'course_id': 'course-v1:edX+DemoX+Demo_Course'})
+        self.assertIn('source.course_id = %(course_id_0_canonical)s', sql)
+        self.assertIn('latest.course_id = %(course_id_0_canonical)s', sql)
+        self.assertEqual(params, COURSE_ID_PARAMS)
 
     @patch('analytics_data_api.insights_snowflake.queries.enrollment.fetch_all')
     @patch(
@@ -214,7 +247,7 @@ class InsightsSnowflakeEnrollmentQueryTests(SimpleTestCase):
         self.assertIn('"DATE" >= %(start_date)s', sql)
         self.assertIn('"DATE" < %(end_date)s', sql)
         self.assertEqual(params, {
-            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            **COURSE_ID_PARAMS,
             'start_date': start_date.date(),
             'end_date': end_date.date(),
         })
@@ -236,7 +269,7 @@ class InsightsSnowflakeEnrollmentQueryTests(SimpleTestCase):
 
         _sql, params = mock_fetch_all.call_args[0]
         self.assertEqual(params, {
-            'course_id': 'course-v1:edX+DemoX+Demo_Course',
+            **COURSE_ID_PARAMS,
             'start_date': start_date,
             'end_date': end_date,
         })
@@ -262,7 +295,7 @@ class InsightsSnowflakeEnrollmentQueryTests(SimpleTestCase):
             mock_get_table_name.assert_called_once_with(table)
             sql, params = _mock_fetch_all.call_args[0]
             self.assertIn(expected_column, sql)
-            self.assertEqual(params, {'course_id': course_id})
+            self.assertEqual(params, COURSE_ID_PARAMS)
 
 
 class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
@@ -303,10 +336,13 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
 
             mock_get_table_name.assert_called_once_with(table)
             sql, params = _mock_fetch_all.call_args[0]
-            self.assertIn('course_id IN (%(course_id_0)s, %(course_id_1)s)', sql)
+            self.assertIn('source.course_id = %(course_id_0_canonical)s', sql)
+            self.assertIn('source.course_id = %(course_id_1_canonical)s', sql)
             self.assertEqual(params, {
-                'course_id_0': course_ids[0],
-                'course_id_1': course_ids[1],
+                'course_id_0_canonical': course_ids[0],
+                'course_id_0_legacy': 'edX/DemoX/Demo_Course',
+                'course_id_1_canonical': course_ids[1],
+                'course_id_1_legacy': 'edX/DemoX/Demo_2014',
             })
 
     @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
@@ -324,10 +360,10 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
 
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('FROM PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY', sql)
-        self.assertIn('AND course_id IN (%(course_id_0)s)', sql)
+        self.assertIn('AND (source.course_id = %(course_id_0_canonical)s', sql)
         self.assertEqual(params, {
             'recent_date': recent_date.date(),
-            'course_id_0': 'course-v1:edX+DemoX+Demo_Course',
+            **COURSE_ID_PARAMS,
         })
 
     @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
@@ -398,8 +434,8 @@ class InsightsSnowflakeVideoQueryTests(SimpleTestCase):
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('FROM PROD.INSIGHTS.VIDEO', sql)
         self.assertIn('courserun_key AS course_id', sql)
-        self.assertIn('WHERE courserun_key = %(course_id)s', sql)
-        self.assertEqual(params, {'course_id': course_id})
+        self.assertIn('source.courserun_key = %(course_id_0_canonical)s', sql)
+        self.assertEqual(params, COURSE_ID_PARAMS)
 
     @patch('analytics_data_api.insights_snowflake.queries.videos.fetch_all')
     @patch('analytics_data_api.insights_snowflake.queries.videos.get_qualified_table_name')
@@ -411,7 +447,7 @@ class InsightsSnowflakeVideoQueryTests(SimpleTestCase):
         mock_get_table_name.assert_called_once_with(VIDEO_TABLE)
         sql, params = _mock_fetch_all.call_args[0]
         self.assertIn('ORDER BY pipeline_video_id', sql)
-        self.assertEqual(params, {'course_id': 'course-v1:edX+DemoX+Demo_Course'})
+        self.assertEqual(params, COURSE_ID_PARAMS)
 
         mock_get_table_name.reset_mock()
         _mock_fetch_all.reset_mock()
@@ -443,8 +479,8 @@ class InsightsSnowflakePerformanceQueryTests(SimpleTestCase):
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('FROM PROD.INSIGHTS.PROBLEM_ANSWER_DISTRIBUTION', sql)
         self.assertIn('LISTAGG(DISTINCT part_id', sql)
-        self.assertIn('WHERE course_id = %(course_id)s', sql)
-        self.assertEqual(params, {'course_id': course_id})
+        self.assertIn('source.course_id = %(course_id_0_canonical)s', sql)
+        self.assertEqual(params, COURSE_ID_PARAMS)
 
     @patch('analytics_data_api.insights_snowflake.queries.performance.fetch_all')
     @patch('analytics_data_api.insights_snowflake.queries.performance.get_qualified_table_name')

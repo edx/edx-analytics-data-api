@@ -3,6 +3,7 @@
 import datetime
 
 from analytics_data_api.insights_snowflake.client import fetch_all, get_qualified_table_name
+from analytics_data_api.insights_snowflake.course_ids import build_preferred_course_id_filter
 
 COURSE_ENROLLMENT_DAILY_TABLE = 'COURSE_ENROLLMENT_DAILY'
 COURSE_ENROLLMENT_MODE_DAILY_TABLE = 'COURSE_ENROLLMENT_MODE_DAILY'
@@ -22,9 +23,13 @@ def _get_course_enrollment_rows(table, columns, order_by, course_id, start_date=
     """Return Snowflake enrollment rows for one controlled table."""
     table_name = get_qualified_table_name(table)
     select_columns = ',\n    '.join(columns)
-    params = {
-        'course_id': course_id,
-    }
+    course_filter, params = build_preferred_course_id_filter(
+        table_name,
+        'course_id',
+        [course_id],
+        alias='source',
+        prefix='',
+    )
 
     if start_date or end_date:
         params.update({
@@ -34,25 +39,43 @@ def _get_course_enrollment_rows(table, columns, order_by, course_id, start_date=
         sql = """
 SELECT
     {select_columns}
-FROM {table_name}
-WHERE course_id = %(course_id)s
+FROM {table_name} AS source
+WHERE {course_filter}
   AND (%(start_date)s IS NULL OR "DATE" >= %(start_date)s)
   AND (%(end_date)s IS NULL OR "DATE" < %(end_date)s)
 ORDER BY {order_by}
-""".format(select_columns=select_columns, table_name=table_name, order_by=order_by)
+""".format(
+            select_columns=select_columns,
+            table_name=table_name,
+            course_filter=course_filter,
+            order_by=order_by,
+        )
     else:
+        latest_course_filter, _ = build_preferred_course_id_filter(
+            table_name,
+            'course_id',
+            [course_id],
+            alias='latest',
+            prefix='',
+        )
         sql = """
 SELECT
     {select_columns}
-FROM {table_name}
-WHERE course_id = %(course_id)s
+FROM {table_name} AS source
+WHERE {course_filter}
   AND "DATE" = (
       SELECT MAX("DATE")
-      FROM {table_name}
-      WHERE course_id = %(course_id)s
+      FROM {table_name} AS latest
+      WHERE {latest_course_filter}
   )
 ORDER BY {order_by}
-""".format(select_columns=select_columns, table_name=table_name, order_by=order_by)
+""".format(
+            select_columns=select_columns,
+            table_name=table_name,
+            course_filter=course_filter,
+            latest_course_filter=latest_course_filter,
+            order_by=order_by,
+        )
 
     return fetch_all(sql, params)
 
