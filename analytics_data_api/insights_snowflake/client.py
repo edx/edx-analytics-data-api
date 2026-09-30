@@ -1,12 +1,12 @@
 """Endpoint-safe Snowflake client helpers for Insights."""
 
+from analytics_data_api.monitoring import trace_snowflake_query
 from analytics_data_api.snowflake_client import (
     SnowflakeConfigurationError,
     connect_to_insights_snowflake,
     get_insights_snowflake_config,
     validate_snowflake_identifier,
 )
-from analytics_data_api.monitoring import trace_snowflake_query
 
 
 def get_qualified_table_name(table_name):
