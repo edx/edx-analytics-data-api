@@ -31,7 +31,7 @@ GROUP BY module_id
 ORDER BY module_id
 """.format(table_name=table_name, course_filter=course_filter)
 
-    return fetch_all(sql, params)
+    return fetch_all(sql, params, table_name=PROBLEM_ANSWER_DISTRIBUTION_TABLE)
 
 
 def get_problem_answer_distribution_rows(problem_id):
@@ -56,4 +56,4 @@ WHERE module_id = %(problem_id)s
 ORDER BY part_id, value_id, variant
 """.format(table_name=table_name)
 
-    return fetch_all(sql, {'problem_id': problem_id})
+    return fetch_all(sql, {'problem_id': problem_id}, table_name=PROBLEM_ANSWER_DISTRIBUTION_TABLE)

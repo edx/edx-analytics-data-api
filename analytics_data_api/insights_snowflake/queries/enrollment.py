@@ -87,7 +87,7 @@ ORDER BY {order_by}
             order_by=order_by,
         )
 
-    return fetch_all(sql, params)
+    return fetch_all(sql, params, table_name=table_name.rsplit('.', 1)[-1])
 
 
 def get_course_enrollment_daily_rows(course_id, start_date=None, end_date=None):
