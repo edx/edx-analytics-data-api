@@ -1,6 +1,6 @@
 """Endpoint-safe Snowflake client helpers for Insights."""
 
-from analytics_data_api.monitoring import trace_snowflake_query
+from analytics_data_api.monitoring import trace_snowflake_connection, trace_snowflake_query
 from analytics_data_api.snowflake_client import (
     SnowflakeConfigurationError,
     connect_to_insights_snowflake,
@@ -28,8 +28,10 @@ def fetch_all(sql, params=None, table_name=None):
     connection = None
     cursor = None
     try:
-        with trace_snowflake_query(table_name or 'unknown'):
+        table_name = table_name or 'unknown'
+        with trace_snowflake_connection(table_name):
             connection = connect_to_insights_snowflake()
+        with trace_snowflake_query(table_name):
             cursor = connection.cursor()
             cursor.execute(sql, params or {})
             column_names = [column[0].lower() for column in cursor.description]
@@ -40,4 +42,5 @@ def fetch_all(sql, params=None, table_name=None):
     finally:
         if cursor is not None:
             cursor.close()
-        connection.close()
+        if connection is not None:
+            connection.close()

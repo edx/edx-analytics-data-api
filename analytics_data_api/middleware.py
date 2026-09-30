@@ -6,6 +6,7 @@ from django.http.response import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework import status
 
+from analytics_data_api.monitoring import set_current_span_tags
 from analytics_data_api.v0.exceptions import (
     CannotCreateReportDownloadLinkError,
     CourseKeyMalformedError,
@@ -25,7 +26,9 @@ class RequestVersionMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if 'api/v1' in request.path:
+        api_version = 'v1' if 'api/v1' in request.path else 'v0'
+        set_current_span_tags(**{'insights.api_version': api_version})
+        if api_version == 'v1':
             thread_data.analyticsapi_database = getattr(settings, 'ANALYTICS_DATABASE_V1')
         else:
             thread_data.analyticsapi_database = getattr(settings, 'ANALYTICS_DATABASE', 'default')

@@ -18,11 +18,10 @@ class InsightsDataSourceResponseMixin:
     def _set_data_source_span_tags(self, data_source):
         """Tag the active request span without requiring a bound test request."""
         request = getattr(self, 'request', None)
-        path = getattr(request, 'path', '')
         set_current_span_tags(
             **{
                 'insights.data_source': data_source,
-                'insights.endpoint_group': get_endpoint_group(path),
+                'insights.endpoint_group': get_endpoint_group(request),
             }
         )
 
@@ -37,13 +36,9 @@ class InsightsDataSourceResponseMixin:
         self._set_data_source_span_tags(self.data_source_snowflake)
 
     def finalize_response(self, request, response, *args, **kwargs):
-        path = getattr(request, 'path', '')
-        if not isinstance(path, str):
-            path = ''
         set_current_span_tags(
             **{
-                'insights.api_version': 'v1' if '/api/v1/' in path else 'v0',
-                'insights.endpoint_group': get_endpoint_group(path),
+                'insights.endpoint_group': get_endpoint_group(request),
             }
         )
         response = super().finalize_response(request, response, *args, **kwargs)

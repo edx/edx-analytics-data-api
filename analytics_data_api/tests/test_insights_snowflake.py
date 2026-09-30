@@ -250,6 +250,13 @@ class InsightsSnowflakeClientTests(SimpleTestCase):
         cursor.close.assert_called_once_with()
         connection.close.assert_called_once_with()
 
+    @patch('analytics_data_api.insights_snowflake.client.connect_to_insights_snowflake')
+    def test_fetch_all_preserves_connection_error(self, mock_connect_to_insights_snowflake):
+        mock_connect_to_insights_snowflake.side_effect = RuntimeError('Snowflake unavailable')
+
+        with self.assertRaisesRegex(RuntimeError, 'Snowflake unavailable'):
+            fetch_all('SELECT 1', table_name='COURSE_ACTIVITY_WEEKLY')
+
 
 class InsightsSnowflakeActivityQueryTests(SimpleTestCase):
     """Cover course activity query construction with mocked Snowflake execution."""

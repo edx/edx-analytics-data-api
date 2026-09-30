@@ -8,22 +8,34 @@ except ImportError:  # pragma: no cover - ddtrace is installed by deployment con
     tracer = None
 
 
-ENDPOINT_GROUPS = (
-    ('course_summaries', 'course_summaries'),
-    ('programs', 'course_summaries'),
-    ('enrollment', 'enrollment'),
-    ('activity', 'engagement'),
-    ('videos', 'engagement'),
-    ('problems', 'performance'),
-)
+ENDPOINT_GROUPS = {
+    'course_summaries': 'course_summaries',
+    'programs': 'course_summaries',
+    'enrollment_latest': 'enrollment',
+    'enrollment_by_mode': 'enrollment',
+    'enrollment_by_birth_year': 'enrollment',
+    'enrollment_by_education': 'enrollment',
+    'enrollment_by_gender': 'enrollment',
+    'enrollment_by_location': 'enrollment',
+    'activity': 'engagement',
+    'recent_activity': 'engagement',
+    'videos': 'engagement',
+    'timeline': 'engagement',
+    'user_engagement': 'engagement',
+    'engagements': 'engagement',
+    'problems': 'performance',
+    'problems_and_tags': 'performance',
+    'sequential_open_distribution': 'performance',
+    'answer_distribution': 'performance',
+    'grade_distribution': 'performance',
+}
 
 
-def get_endpoint_group(path):
-    """Return the low-cardinality Insights endpoint group for a request path."""
-    for path_fragment, endpoint_group in ENDPOINT_GROUPS:
-        if path_fragment in path:
-            return endpoint_group
-    return 'other'
+def get_endpoint_group(request):
+    """Return a low-cardinality group from Django's resolved route name."""
+    resolver_match = getattr(request, 'resolver_match', None)
+    url_name = getattr(resolver_match, 'url_name', None)
+    return ENDPOINT_GROUPS.get(url_name, 'other')
 
 
 def set_current_span_tags(**tags):
@@ -31,7 +43,10 @@ def set_current_span_tags(**tags):
     if tracer is None:
         return
 
-    span = tracer.current_span()
+    if hasattr(tracer, 'current_root_span'):
+        span = tracer.current_root_span()
+    else:
+        span = tracer.current_span()
     if span is not None:
         for key, value in tags.items():
             if value is not None:
@@ -45,21 +60,25 @@ def trace_snowflake_query(table_name):
         yield None
         return
 
-    with tracer.trace('insights.snowflake.query', span_type='db') as span:
+    with tracer.trace('insights.snowflake.query', resource=table_name, span_type='db') as span:
         span.set_tag('db.system', 'snowflake')
         span.set_tag('db.operation', 'select')
+        span.set_tag('span.kind', 'client')
         span.set_tag('insights.data_source', 'snowflake')
         span.set_tag('insights.snowflake.table', table_name)
         yield span
 
 
 @contextmanager
-def trace_cache_operation(cache_name):
-    """Trace an explicit Insights cache lookup."""
+def trace_snowflake_connection(table_name):
+    """Trace the Snowflake connection setup separately from query execution."""
     if tracer is None:
         yield None
         return
 
-    with tracer.trace('insights.cache', span_type='cache') as span:
-        span.set_tag('insights.cache.name', cache_name)
+    with tracer.trace('insights.snowflake.connect', span_type='db') as span:
+        span.set_tag('db.system', 'snowflake')
+        span.set_tag('span.kind', 'client')
+        span.set_tag('insights.data_source', 'snowflake')
+        span.set_tag('insights.snowflake.table', table_name)
         yield span

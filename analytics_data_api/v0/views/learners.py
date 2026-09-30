@@ -10,7 +10,6 @@ from edx_django_utils.cache import TieredCache, get_cache_key
 from enterprise_data.models import EnterpriseUser
 from rest_framework import generics
 
-from analytics_data_api.monitoring import trace_cache_operation
 from analytics_data_api.v0.models import ModuleEngagement
 from analytics_data_api.v0.serializers import EdxPaginationSerializer, EnterpriseLearnerEngagementSerializer
 
@@ -34,14 +33,9 @@ class EnterpriseLearnerEngagementView(generics.ListAPIView):
             resource='enterprise_users',
             resource_id=enterprise_id,
         )
-        with trace_cache_operation('enterprise_users') as cache_span:
-            enterprise_users_cache = TieredCache.get_cached_response(cache_key)
-            if enterprise_users_cache.is_found:
-                if cache_span:
-                    cache_span.set_tag('insights.cache.result', 'hit')
-                return enterprise_users_cache.value
-            if cache_span:
-                cache_span.set_tag('insights.cache.result', 'miss')
+        enterprise_users_cache = TieredCache.get_cached_response(cache_key)
+        if enterprise_users_cache.is_found:
+            return enterprise_users_cache.value
 
         enterprise_users = list(EnterpriseUser.objects.filter(
             enterprise_id=self.kwargs.get('enterprise_customer')
@@ -60,14 +54,9 @@ class EnterpriseLearnerEngagementView(generics.ListAPIView):
             resource='module_engagement_count',
             resource_id=enterprise_id,
         )
-        with trace_cache_operation('module_engagement_count') as cache_span:
-            module_engagement_count_cache = TieredCache.get_cached_response(cache_key)
-            if module_engagement_count_cache.is_found:
-                if cache_span:
-                    cache_span.set_tag('insights.cache.result', 'hit')
-                return module_engagement_count_cache.value
-            if cache_span:
-                cache_span.set_tag('insights.cache.result', 'miss')
+        module_engagement_count_cache = TieredCache.get_cached_response(cache_key)
+        if module_engagement_count_cache.is_found:
+            return module_engagement_count_cache.value
 
         queryset = self._get_queryset()
         count = queryset.count()
