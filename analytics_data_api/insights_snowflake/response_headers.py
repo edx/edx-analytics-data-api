@@ -37,10 +37,13 @@ class InsightsDataSourceResponseMixin:
         self._set_data_source_span_tags(self.data_source_snowflake)
 
     def finalize_response(self, request, response, *args, **kwargs):
+        path = getattr(request, 'path', '')
+        if not isinstance(path, str):
+            path = ''
         set_current_span_tags(
             **{
-                'insights.api_version': 'v1' if '/api/v1/' in request.path else 'v0',
-                'insights.endpoint_group': get_endpoint_group(request.path),
+                'insights.api_version': 'v1' if '/api/v1/' in path else 'v0',
+                'insights.endpoint_group': get_endpoint_group(path),
             }
         )
         response = super().finalize_response(request, response, *args, **kwargs)
