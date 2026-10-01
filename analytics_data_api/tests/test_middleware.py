@@ -4,7 +4,8 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 
-from analytics_data_api.middleware import RequestVersionMiddleware as AnalyticsRequestVersionMiddleware, thread_data
+from analytics_data_api.middleware import RequestVersionMiddleware as AnalyticsRequestVersionMiddleware
+from analytics_data_api.middleware import thread_data
 from analytics_data_api.tests.test_utils import set_databases
 from analytics_data_api.v0.tests.views import CourseSamples
 from analyticsdataserver.tests.utils import TestCaseWithAuthentication
