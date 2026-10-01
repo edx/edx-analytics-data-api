@@ -36,10 +36,7 @@ def set_current_span_tags(**tags):
     if tracer is None:
         return
 
-    if hasattr(tracer, 'current_root_span'):
-        span = tracer.current_root_span()
-    else:
-        span = tracer.current_span()
+    span = tracer.current_root_span()
     if span is not None:
         for key, value in tags.items():
             if value is not None:
