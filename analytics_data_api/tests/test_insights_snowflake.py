@@ -288,13 +288,29 @@ class InsightsSnowflakeClientTests(SimpleTestCase):
         cursor.fetchall.return_value = [(3,)]
         connection = Mock()
         connection.cursor.return_value = cursor
-        mock_connect_to_insights_snowflake.return_value = connection
+
+        def connect_to_snowflake():
+            events.append('connect')
+            return connection
+
+        def execute_query(*_args):
+            events.append('execute')
+
+        mock_connect_to_insights_snowflake.side_effect = connect_to_snowflake
+        cursor.execute.side_effect = execute_query
 
         self.assertEqual(fetch_all('SELECT COUNT(*) FROM table', table_name='TABLE'), [{'count': 3}])
 
         self.assertEqual(
             events,
-            ['connection enter', 'connection exit', 'query enter', 'query exit'],
+            [
+                'connection enter',
+                'connect',
+                'connection exit',
+                'query enter',
+                'execute',
+                'query exit',
+            ],
         )
         mock_trace_snowflake_connection.assert_called_once_with('TABLE')
         mock_trace_snowflake_query.assert_called_once_with('TABLE')

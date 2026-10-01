@@ -13,21 +13,14 @@ ENDPOINT_GROUPS = {
     'programs': 'course_summaries',
     'enrollment_latest': 'enrollment',
     'enrollment_by_mode': 'enrollment',
-    'enrollment_by_birth_year': 'enrollment',
     'enrollment_by_education': 'enrollment',
     'enrollment_by_gender': 'enrollment',
     'enrollment_by_location': 'enrollment',
     'activity': 'engagement',
-    'recent_activity': 'engagement',
     'videos': 'engagement',
     'timeline': 'engagement',
-    'user_engagement': 'engagement',
-    'engagements': 'engagement',
     'problems': 'performance',
-    'problems_and_tags': 'performance',
-    'sequential_open_distribution': 'performance',
     'answer_distribution': 'performance',
-    'grade_distribution': 'performance',
 }
 
 
