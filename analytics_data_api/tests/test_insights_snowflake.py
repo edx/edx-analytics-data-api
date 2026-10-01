@@ -1,7 +1,8 @@
 """Tests for Snowflake-backed Insights endpoint helpers."""
 
 import datetime
-from unittest.mock import Mock, patch
+from contextlib import nullcontext
+from unittest.mock import MagicMock, Mock, patch
 
 from django.test import SimpleTestCase, override_settings
 from opaque_keys import InvalidKeyError
@@ -247,6 +248,93 @@ class InsightsSnowflakeClientTests(SimpleTestCase):
             'SELECT course_id, count FROM PROD.INSIGHTS.COURSE_ACTIVITY_WEEKLY',
             params,
         )
+        cursor.close.assert_called_once_with()
+        connection.close.assert_called_once_with()
+
+    @patch('analytics_data_api.insights_snowflake.client.trace_snowflake_query')
+    @patch('analytics_data_api.insights_snowflake.client.connect_to_insights_snowflake')
+    def test_fetch_all_preserves_connection_error(
+        self,
+        mock_connect_to_insights_snowflake,
+        mock_trace_snowflake_query,
+    ):
+        mock_connect_to_insights_snowflake.side_effect = RuntimeError('Snowflake unavailable')
+
+        with self.assertRaisesRegex(RuntimeError, 'Snowflake unavailable'):
+            fetch_all('SELECT 1', table_name='COURSE_ACTIVITY_WEEKLY')
+
+        mock_trace_snowflake_query.assert_not_called()
+
+    @patch('analytics_data_api.insights_snowflake.client.trace_snowflake_query')
+    @patch('analytics_data_api.insights_snowflake.client.trace_snowflake_connection')
+    @patch('analytics_data_api.insights_snowflake.client.connect_to_insights_snowflake')
+    def test_fetch_all_traces_connection_before_query(
+        self,
+        mock_connect_to_insights_snowflake,
+        mock_trace_snowflake_connection,
+        mock_trace_snowflake_query,
+    ):
+        events = []
+
+        def recording_context(name):
+            context = MagicMock()
+            context.__enter__.side_effect = lambda: events.append('{} enter'.format(name))
+            context.__exit__.side_effect = lambda *_args: events.append('{} exit'.format(name)) or False
+            return context
+
+        mock_trace_snowflake_connection.return_value = recording_context('connection')
+        mock_trace_snowflake_query.return_value = recording_context('query')
+        cursor = Mock(description=[('COUNT',)])
+        cursor.fetchall.return_value = [(3,)]
+        connection = Mock()
+        connection.cursor.return_value = cursor
+
+        def connect_to_snowflake():
+            events.append('connect')
+            return connection
+
+        def execute_query(*_args):
+            events.append('execute')
+
+        mock_connect_to_insights_snowflake.side_effect = connect_to_snowflake
+        cursor.execute.side_effect = execute_query
+
+        self.assertEqual(fetch_all('SELECT COUNT(*) FROM table', table_name='TABLE'), [{'count': 3}])
+
+        self.assertEqual(
+            events,
+            [
+                'connection enter',
+                'connect',
+                'connection exit',
+                'query enter',
+                'execute',
+                'query exit',
+            ],
+        )
+        mock_trace_snowflake_connection.assert_called_once_with('TABLE')
+        mock_trace_snowflake_query.assert_called_once_with('TABLE')
+
+    @patch('analytics_data_api.insights_snowflake.client.trace_snowflake_query')
+    @patch('analytics_data_api.insights_snowflake.client.trace_snowflake_connection')
+    @patch('analytics_data_api.insights_snowflake.client.connect_to_insights_snowflake')
+    def test_fetch_all_closes_resources_when_query_fails(
+        self,
+        mock_connect_to_insights_snowflake,
+        mock_trace_snowflake_connection,
+        mock_trace_snowflake_query,
+    ):
+        mock_trace_snowflake_connection.return_value = nullcontext()
+        mock_trace_snowflake_query.return_value = nullcontext()
+        cursor = Mock()
+        cursor.execute.side_effect = RuntimeError('Snowflake query failed')
+        connection = Mock()
+        connection.cursor.return_value = cursor
+        mock_connect_to_insights_snowflake.return_value = connection
+
+        with self.assertRaisesRegex(RuntimeError, 'Snowflake query failed'):
+            fetch_all('SELECT 1', table_name='TABLE')
+
         cursor.close.assert_called_once_with()
         connection.close.assert_called_once_with()
 

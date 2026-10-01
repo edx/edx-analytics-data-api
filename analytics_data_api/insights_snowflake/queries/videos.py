@@ -33,7 +33,7 @@ WHERE {course_filter}
 ORDER BY pipeline_video_id
 """.format(table_name=table_name, course_filter=course_filter)
 
-    return fetch_all(sql, params)
+    return fetch_all(sql, params, table_name=VIDEO_TABLE)
 
 
 def get_video_timeline_rows(video_id):
@@ -50,4 +50,4 @@ WHERE pipeline_video_id = %(video_id)s
 ORDER BY segment
 """.format(table_name=table_name)
 
-    return fetch_all(sql, {'video_id': video_id})
+    return fetch_all(sql, {'video_id': video_id}, table_name=VIDEO_TIMELINE_TABLE)

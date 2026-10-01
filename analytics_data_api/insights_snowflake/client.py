@@ -1,5 +1,6 @@
 """Endpoint-safe Snowflake client helpers for Insights."""
 
+from analytics_data_api.monitoring import trace_snowflake_connection, trace_snowflake_query
 from analytics_data_api.snowflake_client import (
     SnowflakeConfigurationError,
     connect_to_insights_snowflake,
@@ -18,23 +19,28 @@ def get_qualified_table_name(table_name):
     return '{}.{}.{}'.format(database, schema, table)
 
 
-def fetch_all(sql, params=None):
+def fetch_all(sql, params=None, table_name=None):
     """Run a read-only Snowflake query and return rows as dictionaries."""
     tokens = sql.lstrip().split(None, 1)
     if not tokens or tokens[0].upper() != 'SELECT':
         raise SnowflakeConfigurationError('Only SELECT queries are allowed for Insights Snowflake endpoints.')
 
-    connection = connect_to_insights_snowflake()
+    connection = None
     cursor = None
     try:
-        cursor = connection.cursor()
-        cursor.execute(sql, params or {})
-        column_names = [column[0].lower() for column in cursor.description]
-        return [
-            dict(zip(column_names, row))
-            for row in cursor.fetchall()
-        ]
+        table_name = table_name or 'unknown'
+        with trace_snowflake_connection(table_name):
+            connection = connect_to_insights_snowflake()
+        with trace_snowflake_query(table_name):
+            cursor = connection.cursor()
+            cursor.execute(sql, params or {})
+            column_names = [column[0].lower() for column in cursor.description]
+            return [
+                dict(zip(column_names, row))
+                for row in cursor.fetchall()
+            ]
     finally:
         if cursor is not None:
             cursor.close()
-        connection.close()
+        if connection is not None:
+            connection.close()

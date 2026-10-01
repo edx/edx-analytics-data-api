@@ -36,4 +36,4 @@ FROM {table_name}
 ORDER BY program_id, course_id
 """.format(table_name=table_name, where_clause=where_clause)
 
-    return fetch_all(sql, params)
+    return fetch_all(sql, params, table_name=COURSE_PROGRAM_METADATA_TABLE)

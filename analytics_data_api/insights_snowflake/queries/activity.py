@@ -68,4 +68,4 @@ ORDER BY course_id, interval_start, interval_end, label
             latest_course_filter=latest_course_filter,
         )
 
-    return fetch_all(sql, params)
+    return fetch_all(sql, params, table_name=COURSE_ACTIVITY_WEEKLY_TABLE)

@@ -59,7 +59,7 @@ FROM {from_clause}
 ORDER BY course_id, enrollment_mode
 """.format(from_clause=from_clause, where_clause=where_clause)
 
-    return fetch_all(sql, params)
+    return fetch_all(sql, params, table_name=COURSE_META_SUMMARY_ENROLLMENT_TABLE)
 
 
 def get_course_summary_program_rows(course_ids=None):
@@ -93,7 +93,7 @@ FROM {from_clause}
 ORDER BY course_id, program_id
 """.format(from_clause=from_clause, where_clause=where_clause)
 
-    return fetch_all(sql, params)
+    return fetch_all(sql, params, table_name=COURSE_PROGRAM_METADATA_TABLE)
 
 
 def get_course_recent_enrollment_rows(course_ids=None, recent_date=None):
@@ -133,4 +133,4 @@ WHERE "DATE" = %(recent_date)s
 ORDER BY course_id
 """.format(from_clause=from_clause, course_filter=course_filter)
 
-    return fetch_all(sql, params)
+    return fetch_all(sql, params, table_name=COURSE_ENROLLMENT_DAILY_TABLE)
