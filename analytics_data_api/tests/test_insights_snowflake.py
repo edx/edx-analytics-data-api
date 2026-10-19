@@ -205,7 +205,8 @@ class InsightsSnowflakeCourseIdTests(SimpleTestCase):
 
         self.assertTrue(course_filter.startswith('AND ('))
         self.assertTrue(course_filter.endswith(')'))
-        self.assertIn(' OR (source.course_id = %(course_id_1_canonical)s', course_filter)
+        self.assertIn('(source.course_id IN (%(course_id_0_canonical)s, %(course_id_1_canonical)s)', course_filter)
+        self.assertEqual(course_filter.count('NOT EXISTS'), 1)
 
 
 VALID_CONFIG = {
@@ -513,8 +514,7 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
 
             mock_get_table_name.assert_called_once_with(table)
             sql, params = _mock_fetch_all.call_args[0]
-            self.assertIn('source.course_id = %(course_id_0_canonical)s', sql)
-            self.assertIn('source.course_id = %(course_id_1_canonical)s', sql)
+            self.assertIn('source.course_id IN (%(course_id_0_canonical)s, %(course_id_1_canonical)s)', sql)
             self.assertEqual(params, {
                 'course_id_0_canonical': course_ids[0],
                 'course_id_0_legacy': 'edX/DemoX/Demo_Course',
@@ -559,7 +559,7 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
 
         sql, _params = mock_fetch_all.call_args[0]
         self.assertIn('WHERE "DATE" = %(recent_date)s\nAND (', sql)
-        self.assertIn(' OR (source.course_id = %(course_id_1_canonical)s', sql)
+        self.assertIn('\nAND (source.course_id IN (%(course_id_0_canonical)s, %(course_id_1_canonical)s)', sql)
         self.assertTrue(sql.split('ORDER BY')[0].rstrip().endswith('))'))
 
     @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
