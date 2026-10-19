@@ -1,6 +1,8 @@
 """Tests for Snowflake-backed Insights endpoint helpers."""
 
 import datetime
+import re
+import sqlite3
 from contextlib import nullcontext
 from unittest.mock import MagicMock, Mock, patch
 
@@ -103,10 +105,39 @@ COURSE_ID = 'course-v1:edX+DemoX+Demo_Course'
 LEGACY_COURSE_ID = 'edX/DemoX/Demo_Course'
 SECOND_COURSE_ID = 'course-v1:edX+DemoX+Demo_2014'
 CCX_COURSE_ID = 'ccx-v1:edx+1.005x-CCX+rerun+ccx@15'
+SECOND_LEGACY_COURSE_ID = 'edX/DemoX/Demo_2014'
+BRANCH_COURSE_ID = 'course-v1:MITx+6.002x+2012+branch@draft'
+BRANCH_LEGACY_COURSE_ID = 'MITx/6.002x/2012'
+VERSION_COURSE_ID = 'course-v1:HarvardX+CS50+2015+version@519665f6223ebd6980884f2b'
+VERSION_LEGACY_COURSE_ID = 'HarvardX/CS50/2015'
 COURSE_ID_PARAMS = {
     'course_id_0_canonical': COURSE_ID,
     'course_id_0_legacy': LEGACY_COURSE_ID,
 }
+
+
+def select_course_rows(rows, course_ids):
+    """Return the rows that the preferred course ID filter selects, run on SQLite.
+
+    EQUAL_NULL and CONCAT behave like their Snowflake versions.
+    """
+    connection = sqlite3.connect(':memory:')
+    connection.create_function(
+        'EQUAL_NULL', 2, lambda left, right: left is right if left is None or right is None else left == right,
+    )
+    connection.create_function(
+        'CONCAT', 2, lambda left, right: None if left is None or right is None else left + right,
+    )
+    connection.execute('CREATE TABLE course_rows (course_id TEXT, enrollment_mode TEXT)')
+    connection.executemany('INSERT INTO course_rows VALUES (?, ?)', rows)
+    course_filter, params = build_preferred_course_id_filter(
+        'course_rows', 'course_id', course_ids, scope_columns=('enrollment_mode',),
+    )
+    sql = 'SELECT course_id, enrollment_mode FROM course_rows AS source {}'.format(course_filter)
+    try:
+        return set(connection.execute(re.sub(r'%\((\w+)\)s', r':\1', sql), params).fetchall())
+    finally:
+        connection.close()
 
 
 class InsightsSnowflakeCourseIdTests(SimpleTestCase):
@@ -207,6 +238,62 @@ class InsightsSnowflakeCourseIdTests(SimpleTestCase):
         self.assertTrue(course_filter.endswith(')'))
         self.assertIn('(source.course_id IN (%(course_id_0_canonical)s, %(course_id_1_canonical)s)', course_filter)
         self.assertEqual(course_filter.count('NOT EXISTS'), 1)
+
+    def test_build_preferred_course_id_filter_prefers_canonical_rows_per_listed_course(self):
+        rows = [
+            (COURSE_ID, 'audit'),
+            (COURSE_ID, None),
+            (LEGACY_COURSE_ID, 'audit'),
+            (LEGACY_COURSE_ID, None),
+            (LEGACY_COURSE_ID, 'verified'),
+            (SECOND_COURSE_ID, 'verified'),
+            (SECOND_LEGACY_COURSE_ID, 'audit'),
+            (SECOND_LEGACY_COURSE_ID, 'verified'),
+            (BRANCH_COURSE_ID, 'audit'),
+            (BRANCH_LEGACY_COURSE_ID, 'audit'),
+            (BRANCH_LEGACY_COURSE_ID, 'verified'),
+            ('course-v1:HarvardX+Other+2015', 'audit'),
+            (None, 'audit'),
+        ]
+
+        selected = select_course_rows(rows, [COURSE_ID, SECOND_LEGACY_COURSE_ID, BRANCH_COURSE_ID, COURSE_ID])
+
+        self.assertEqual(selected, {
+            (COURSE_ID, 'audit'),
+            (COURSE_ID, None),
+            # The only legacy row of this course whose scope has no canonical row, NULL included.
+            (LEGACY_COURSE_ID, 'verified'),
+            (SECOND_COURSE_ID, 'verified'),
+            # The canonical audit row belongs to another course, so this legacy row stays.
+            (SECOND_LEGACY_COURSE_ID, 'audit'),
+            (BRANCH_COURSE_ID, 'audit'),
+            # The branch course is compared with its own canonical ID, not the plain course-v1 form.
+            (BRANCH_LEGACY_COURSE_ID, 'verified'),
+        })
+
+    def test_build_preferred_course_id_filter_handles_lists_without_plain_courses(self):
+        rows = [
+            (CCX_COURSE_ID, 'audit'),
+            (VERSION_COURSE_ID, 'audit'),
+            (VERSION_LEGACY_COURSE_ID, 'audit'),
+            (VERSION_LEGACY_COURSE_ID, 'verified'),
+            (BRANCH_COURSE_ID, 'audit'),
+            (BRANCH_LEGACY_COURSE_ID, 'verified'),
+        ]
+
+        with self.subTest('specialized and version keys'):
+            self.assertEqual(select_course_rows(rows, [CCX_COURSE_ID, VERSION_COURSE_ID]), {
+                (CCX_COURSE_ID, 'audit'),
+                (VERSION_COURSE_ID, 'audit'),
+                (VERSION_LEGACY_COURSE_ID, 'verified'),
+            })
+        with self.subTest('branch and version keys only'):
+            self.assertEqual(select_course_rows(rows, [BRANCH_COURSE_ID, VERSION_COURSE_ID]), {
+                (VERSION_COURSE_ID, 'audit'),
+                (VERSION_LEGACY_COURSE_ID, 'verified'),
+                (BRANCH_COURSE_ID, 'audit'),
+                (BRANCH_LEGACY_COURSE_ID, 'verified'),
+            })
 
 
 VALID_CONFIG = {
