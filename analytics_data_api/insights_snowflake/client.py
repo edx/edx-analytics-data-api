@@ -5,6 +5,7 @@ from analytics_data_api.snowflake_client import (
     SnowflakeConfigurationError,
     connect_to_insights_snowflake,
     get_insights_snowflake_config,
+    get_insights_snowflake_query_timeout,
     validate_snowflake_identifier,
 )
 
@@ -33,7 +34,7 @@ def fetch_all(sql, params=None, table_name=None):
             connection = connect_to_insights_snowflake()
         with trace_snowflake_query(table_name):
             cursor = connection.cursor()
-            cursor.execute(sql, params or {})
+            cursor.execute(sql, params or {}, timeout=get_insights_snowflake_query_timeout())
             column_names = [column[0].lower() for column in cursor.description]
             return [
                 dict(zip(column_names, row))

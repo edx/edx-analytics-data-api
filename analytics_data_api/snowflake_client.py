@@ -14,6 +14,7 @@ from django.conf import settings
 
 QUERY_TAG = 'edx_analytics_api_insights_snowflake_phase1'
 DEFAULT_VALIDATION_TABLE = 'COURSE_ACTIVITY_WEEKLY'
+DEFAULT_QUERY_TIMEOUT_SECONDS = 60
 REQUIRED_CONFIG_KEYS = (
     'ACCOUNT',
     'USER',
@@ -43,6 +44,18 @@ def get_insights_snowflake_config():
         )
 
     return config
+
+
+def get_insights_snowflake_query_timeout():
+    """Return how many seconds an Insights Snowflake query may run.
+
+    The connector cancels the query in Snowflake when this runs out, also while
+    it is still compiling. Insights stops waiting long before that, so a longer
+    query only uses warehouse time. Set ``QUERY_TIMEOUT_SECONDS`` in
+    ``INSIGHTS_SNOWFLAKE`` to change it.
+    """
+    config = getattr(settings, 'INSIGHTS_SNOWFLAKE', None) or {}
+    return config.get('QUERY_TIMEOUT_SECONDS') or DEFAULT_QUERY_TIMEOUT_SECONDS
 
 
 def get_private_key_der(config):

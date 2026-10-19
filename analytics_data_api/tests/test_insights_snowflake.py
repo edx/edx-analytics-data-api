@@ -97,7 +97,7 @@ from analytics_data_api.insights_snowflake.toggles import (
     is_insights_snowflake_enabled,
     is_insights_snowflake_group_enabled,
 )
-from analytics_data_api.snowflake_client import SnowflakeConfigurationError
+from analytics_data_api.snowflake_client import DEFAULT_QUERY_TIMEOUT_SECONDS, SnowflakeConfigurationError
 
 COURSE_ID = 'course-v1:edX+DemoX+Demo_Course'
 LEGACY_COURSE_ID = 'edX/DemoX/Demo_Course'
@@ -248,6 +248,7 @@ class InsightsSnowflakeClientTests(SimpleTestCase):
         cursor.execute.assert_called_once_with(
             'SELECT course_id, count FROM PROD.INSIGHTS.COURSE_ACTIVITY_WEEKLY',
             params,
+            timeout=DEFAULT_QUERY_TIMEOUT_SECONDS,
         )
         cursor.close.assert_called_once_with()
         connection.close.assert_called_once_with()
@@ -294,7 +295,7 @@ class InsightsSnowflakeClientTests(SimpleTestCase):
             events.append('connect')
             return connection
 
-        def execute_query(*_args):
+        def execute_query(*_args, **_kwargs):
             events.append('execute')
 
         mock_connect_to_insights_snowflake.side_effect = connect_to_snowflake
