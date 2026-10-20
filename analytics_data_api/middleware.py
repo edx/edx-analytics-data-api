@@ -7,6 +7,7 @@ from django.utils.deprecation import MiddlewareMixin
 from rest_framework import status
 
 from analytics_data_api.monitoring import set_current_span_tags
+from analytics_data_api.snowflake_client import SnowflakeQueryTimeoutError
 from analytics_data_api.v0.exceptions import (
     CannotCreateReportDownloadLinkError,
     CourseKeyMalformedError,
@@ -132,3 +133,21 @@ class CannotCreateDownloadLinkErrorMiddleware(BaseProcessErrorMiddleware):
     @property
     def status_code(self):
         return status.HTTP_501_NOT_IMPLEMENTED
+
+
+class SnowflakeQueryTimeoutErrorMiddleware(BaseProcessErrorMiddleware):
+    """
+    Raise 504 if Snowflake canceled a query, usually because it ran out of time
+    """
+
+    @property
+    def error(self):
+        return SnowflakeQueryTimeoutError
+
+    @property
+    def error_code(self):
+        return 'snowflake_query_timeout'
+
+    @property
+    def status_code(self):
+        return status.HTTP_504_GATEWAY_TIMEOUT

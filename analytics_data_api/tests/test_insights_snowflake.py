@@ -99,7 +99,11 @@ from analytics_data_api.insights_snowflake.toggles import (
     is_insights_snowflake_enabled,
     is_insights_snowflake_group_enabled,
 )
-from analytics_data_api.snowflake_client import DEFAULT_QUERY_TIMEOUT_SECONDS, SnowflakeConfigurationError
+from analytics_data_api.snowflake_client import (
+    DEFAULT_QUERY_TIMEOUT_SECONDS,
+    SnowflakeConfigurationError,
+    SnowflakeQueryTimeoutError,
+)
 
 COURSE_ID = 'course-v1:edX+DemoX+Demo_Course'
 LEGACY_COURSE_ID = 'edX/DemoX/Demo_Course'
@@ -424,6 +428,34 @@ class InsightsSnowflakeClientTests(SimpleTestCase):
         with self.assertRaisesRegex(RuntimeError, 'Snowflake query failed'):
             fetch_all('SELECT 1', table_name='TABLE')
 
+        cursor.close.assert_called_once_with()
+        connection.close.assert_called_once_with()
+
+    @override_settings(INSIGHTS_SNOWFLAKE={**VALID_CONFIG, 'QUERY_TIMEOUT_SECONDS': 15})
+    @patch('analytics_data_api.insights_snowflake.client.connect_to_insights_snowflake')
+    def test_fetch_all_uses_configured_query_timeout(self, mock_connect_to_insights_snowflake):
+        cursor = Mock(description=[('COUNT',)])
+        cursor.fetchall.return_value = [(3,)]
+        mock_connect_to_insights_snowflake.return_value.cursor.return_value = cursor
+
+        fetch_all('SELECT 1', table_name='TABLE')
+
+        cursor.execute.assert_called_once_with('SELECT 1', {}, timeout=15)
+
+    @patch('analytics_data_api.insights_snowflake.client.connect_to_insights_snowflake')
+    def test_fetch_all_raises_timeout_error_when_snowflake_cancels_the_query(self, mock_connect_to_insights_snowflake):
+        canceled = Exception('000604 (57014): SQL execution canceled')
+        canceled.sqlstate = '57014'
+        cursor = Mock()
+        cursor.execute.side_effect = canceled
+        connection = Mock()
+        connection.cursor.return_value = cursor
+        mock_connect_to_insights_snowflake.return_value = connection
+
+        with self.assertRaisesRegex(SnowflakeQueryTimeoutError, 'Snowflake canceled the TABLE query') as context:
+            fetch_all('SELECT 1', table_name='TABLE')
+
+        self.assertIs(context.exception.__cause__, canceled)
         cursor.close.assert_called_once_with()
         connection.close.assert_called_once_with()
 
