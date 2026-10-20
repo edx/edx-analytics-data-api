@@ -14,6 +14,7 @@ from django.conf import settings
 
 QUERY_TAG = 'edx_analytics_api_insights_snowflake_phase1'
 DEFAULT_VALIDATION_TABLE = 'COURSE_ACTIVITY_WEEKLY'
+DEFAULT_QUERY_TIMEOUT_SECONDS = 60
 REQUIRED_CONFIG_KEYS = (
     'ACCOUNT',
     'USER',
@@ -30,6 +31,10 @@ class SnowflakeConfigurationError(Exception):
     """Raised when Insights Snowflake configuration is missing or unsafe."""
 
 
+class SnowflakeQueryTimeoutError(Exception):
+    """Raised when Snowflake cancels an Insights query, usually because it ran out of time."""
+
+
 def get_insights_snowflake_config():
     """Return the configured Insights Snowflake settings."""
     config = getattr(settings, 'INSIGHTS_SNOWFLAKE', None)
@@ -43,6 +48,29 @@ def get_insights_snowflake_config():
         )
 
     return config
+
+
+def get_insights_snowflake_query_timeout():
+    """Return how many seconds an Insights Snowflake query may run.
+
+    The connector cancels the query in Snowflake when this runs out, also while
+    it is still compiling. Insights stops waiting long before that, so a longer
+    query only uses warehouse time. Set ``QUERY_TIMEOUT_SECONDS`` in
+    ``INSIGHTS_SNOWFLAKE`` to a positive number of seconds to change it.
+    """
+    config = getattr(settings, 'INSIGHTS_SNOWFLAKE', None) or {}
+    timeout = config.get('QUERY_TIMEOUT_SECONDS')
+    if timeout is None:
+        return DEFAULT_QUERY_TIMEOUT_SECONDS
+
+    message = 'INSIGHTS_SNOWFLAKE QUERY_TIMEOUT_SECONDS must be a positive number of seconds.'
+    try:
+        timeout = int(timeout)
+    except (TypeError, ValueError) as error:
+        raise SnowflakeConfigurationError(message) from error
+    if timeout <= 0:
+        raise SnowflakeConfigurationError(message)
+    return timeout
 
 
 def get_private_key_der(config):

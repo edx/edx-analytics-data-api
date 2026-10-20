@@ -1,6 +1,8 @@
 """Tests for Snowflake-backed Insights endpoint helpers."""
 
 import datetime
+import re
+import sqlite3
 from contextlib import nullcontext
 from unittest.mock import MagicMock, Mock, patch
 
@@ -97,16 +99,49 @@ from analytics_data_api.insights_snowflake.toggles import (
     is_insights_snowflake_enabled,
     is_insights_snowflake_group_enabled,
 )
-from analytics_data_api.snowflake_client import SnowflakeConfigurationError
+from analytics_data_api.snowflake_client import (
+    DEFAULT_QUERY_TIMEOUT_SECONDS,
+    SnowflakeConfigurationError,
+    SnowflakeQueryTimeoutError,
+)
 
 COURSE_ID = 'course-v1:edX+DemoX+Demo_Course'
 LEGACY_COURSE_ID = 'edX/DemoX/Demo_Course'
 SECOND_COURSE_ID = 'course-v1:edX+DemoX+Demo_2014'
 CCX_COURSE_ID = 'ccx-v1:edx+1.005x-CCX+rerun+ccx@15'
+SECOND_LEGACY_COURSE_ID = 'edX/DemoX/Demo_2014'
+BRANCH_COURSE_ID = 'course-v1:MITx+6.002x+2012+branch@draft'
+BRANCH_LEGACY_COURSE_ID = 'MITx/6.002x/2012'
+VERSION_COURSE_ID = 'course-v1:HarvardX+CS50+2015+version@519665f6223ebd6980884f2b'
+VERSION_LEGACY_COURSE_ID = 'HarvardX/CS50/2015'
 COURSE_ID_PARAMS = {
     'course_id_0_canonical': COURSE_ID,
     'course_id_0_legacy': LEGACY_COURSE_ID,
 }
+
+
+def select_course_rows(rows, course_ids):
+    """Return the rows that the preferred course ID filter selects, run on SQLite.
+
+    EQUAL_NULL and CONCAT behave like their Snowflake versions.
+    """
+    connection = sqlite3.connect(':memory:')
+    connection.create_function(
+        'EQUAL_NULL', 2, lambda left, right: left is right if left is None or right is None else left == right,
+    )
+    connection.create_function(
+        'CONCAT', 2, lambda left, right: None if left is None or right is None else left + right,
+    )
+    connection.execute('CREATE TABLE course_rows (course_id TEXT, enrollment_mode TEXT)')
+    connection.executemany('INSERT INTO course_rows VALUES (?, ?)', rows)
+    course_filter, params = build_preferred_course_id_filter(
+        'course_rows', 'course_id', course_ids, scope_columns=('enrollment_mode',),
+    )
+    sql = 'SELECT course_id, enrollment_mode FROM course_rows AS source {}'.format(course_filter)
+    try:
+        return set(connection.execute(re.sub(r'%\((\w+)\)s', r':\1', sql), params).fetchall())
+    finally:
+        connection.close()
 
 
 class InsightsSnowflakeCourseIdTests(SimpleTestCase):
@@ -140,6 +175,16 @@ class InsightsSnowflakeCourseIdTests(SimpleTestCase):
     def test_get_response_course_id_preserves_invalid_stored_values(self):
         self.assertIsNone(get_response_course_id(None))
         self.assertEqual(get_response_course_id('not-a-course-key'), 'not-a-course-key')
+
+    def test_build_preferred_course_id_filter_without_course_ids_adds_no_filter(self):
+        course_filter, params = build_preferred_course_id_filter(
+            'PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY',
+            'course_id',
+            [],
+        )
+
+        self.assertEqual(course_filter, '')
+        self.assertEqual(params, {})
 
     def test_build_preferred_course_id_filter_prefers_canonical_rows(self):
         course_filter, params = build_preferred_course_id_filter(
@@ -205,7 +250,64 @@ class InsightsSnowflakeCourseIdTests(SimpleTestCase):
 
         self.assertTrue(course_filter.startswith('AND ('))
         self.assertTrue(course_filter.endswith(')'))
-        self.assertIn(' OR (source.course_id = %(course_id_1_canonical)s', course_filter)
+        self.assertIn('(source.course_id IN (%(course_id_0_canonical)s, %(course_id_1_canonical)s)', course_filter)
+        self.assertEqual(course_filter.count('NOT EXISTS'), 1)
+
+    def test_build_preferred_course_id_filter_prefers_canonical_rows_per_listed_course(self):
+        rows = [
+            (COURSE_ID, 'audit'),
+            (COURSE_ID, None),
+            (LEGACY_COURSE_ID, 'audit'),
+            (LEGACY_COURSE_ID, None),
+            (LEGACY_COURSE_ID, 'verified'),
+            (SECOND_COURSE_ID, 'verified'),
+            (SECOND_LEGACY_COURSE_ID, 'audit'),
+            (SECOND_LEGACY_COURSE_ID, 'verified'),
+            (BRANCH_COURSE_ID, 'audit'),
+            (BRANCH_LEGACY_COURSE_ID, 'audit'),
+            (BRANCH_LEGACY_COURSE_ID, 'verified'),
+            ('course-v1:HarvardX+Other+2015', 'audit'),
+            (None, 'audit'),
+        ]
+
+        selected = select_course_rows(rows, [COURSE_ID, SECOND_LEGACY_COURSE_ID, BRANCH_COURSE_ID, COURSE_ID])
+
+        self.assertEqual(selected, {
+            (COURSE_ID, 'audit'),
+            (COURSE_ID, None),
+            # The only legacy row of this course whose scope has no canonical row, NULL included.
+            (LEGACY_COURSE_ID, 'verified'),
+            (SECOND_COURSE_ID, 'verified'),
+            # The canonical audit row belongs to another course, so this legacy row stays.
+            (SECOND_LEGACY_COURSE_ID, 'audit'),
+            (BRANCH_COURSE_ID, 'audit'),
+            # The branch course is compared with its own canonical ID, not the plain course-v1 form.
+            (BRANCH_LEGACY_COURSE_ID, 'verified'),
+        })
+
+    def test_build_preferred_course_id_filter_handles_lists_without_plain_courses(self):
+        rows = [
+            (CCX_COURSE_ID, 'audit'),
+            (VERSION_COURSE_ID, 'audit'),
+            (VERSION_LEGACY_COURSE_ID, 'audit'),
+            (VERSION_LEGACY_COURSE_ID, 'verified'),
+            (BRANCH_COURSE_ID, 'audit'),
+            (BRANCH_LEGACY_COURSE_ID, 'verified'),
+        ]
+
+        with self.subTest('specialized and version keys'):
+            self.assertEqual(select_course_rows(rows, [CCX_COURSE_ID, VERSION_COURSE_ID]), {
+                (CCX_COURSE_ID, 'audit'),
+                (VERSION_COURSE_ID, 'audit'),
+                (VERSION_LEGACY_COURSE_ID, 'verified'),
+            })
+        with self.subTest('branch and version keys only'):
+            self.assertEqual(select_course_rows(rows, [BRANCH_COURSE_ID, VERSION_COURSE_ID]), {
+                (VERSION_COURSE_ID, 'audit'),
+                (VERSION_LEGACY_COURSE_ID, 'verified'),
+                (BRANCH_COURSE_ID, 'audit'),
+                (BRANCH_LEGACY_COURSE_ID, 'verified'),
+            })
 
 
 VALID_CONFIG = {
@@ -247,6 +349,7 @@ class InsightsSnowflakeClientTests(SimpleTestCase):
         cursor.execute.assert_called_once_with(
             'SELECT course_id, count FROM PROD.INSIGHTS.COURSE_ACTIVITY_WEEKLY',
             params,
+            timeout=DEFAULT_QUERY_TIMEOUT_SECONDS,
         )
         cursor.close.assert_called_once_with()
         connection.close.assert_called_once_with()
@@ -293,7 +396,7 @@ class InsightsSnowflakeClientTests(SimpleTestCase):
             events.append('connect')
             return connection
 
-        def execute_query(*_args):
+        def execute_query(*_args, **_kwargs):
             events.append('execute')
 
         mock_connect_to_insights_snowflake.side_effect = connect_to_snowflake
@@ -335,6 +438,34 @@ class InsightsSnowflakeClientTests(SimpleTestCase):
         with self.assertRaisesRegex(RuntimeError, 'Snowflake query failed'):
             fetch_all('SELECT 1', table_name='TABLE')
 
+        cursor.close.assert_called_once_with()
+        connection.close.assert_called_once_with()
+
+    @override_settings(INSIGHTS_SNOWFLAKE={**VALID_CONFIG, 'QUERY_TIMEOUT_SECONDS': 15})
+    @patch('analytics_data_api.insights_snowflake.client.connect_to_insights_snowflake')
+    def test_fetch_all_uses_configured_query_timeout(self, mock_connect_to_insights_snowflake):
+        cursor = Mock(description=[('COUNT',)])
+        cursor.fetchall.return_value = [(3,)]
+        mock_connect_to_insights_snowflake.return_value.cursor.return_value = cursor
+
+        fetch_all('SELECT 1', table_name='TABLE')
+
+        cursor.execute.assert_called_once_with('SELECT 1', {}, timeout=15)
+
+    @patch('analytics_data_api.insights_snowflake.client.connect_to_insights_snowflake')
+    def test_fetch_all_raises_timeout_error_when_snowflake_cancels_the_query(self, mock_connect_to_insights_snowflake):
+        canceled = Exception('000604 (57014): SQL execution canceled')
+        canceled.sqlstate = '57014'
+        cursor = Mock()
+        cursor.execute.side_effect = canceled
+        connection = Mock()
+        connection.cursor.return_value = cursor
+        mock_connect_to_insights_snowflake.return_value = connection
+
+        with self.assertRaisesRegex(SnowflakeQueryTimeoutError, 'Snowflake canceled the TABLE query') as context:
+            fetch_all('SELECT 1', table_name='TABLE')
+
+        self.assertIs(context.exception.__cause__, canceled)
         cursor.close.assert_called_once_with()
         connection.close.assert_called_once_with()
 
@@ -513,8 +644,7 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
 
             mock_get_table_name.assert_called_once_with(table)
             sql, params = _mock_fetch_all.call_args[0]
-            self.assertIn('source.course_id = %(course_id_0_canonical)s', sql)
-            self.assertIn('source.course_id = %(course_id_1_canonical)s', sql)
+            self.assertIn('source.course_id IN (%(course_id_0_canonical)s, %(course_id_1_canonical)s)', sql)
             self.assertEqual(params, {
                 'course_id_0_canonical': course_ids[0],
                 'course_id_0_legacy': 'edX/DemoX/Demo_Course',
@@ -559,7 +689,7 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
 
         sql, _params = mock_fetch_all.call_args[0]
         self.assertIn('WHERE "DATE" = %(recent_date)s\nAND (', sql)
-        self.assertIn(' OR (source.course_id = %(course_id_1_canonical)s', sql)
+        self.assertIn('\nAND (source.course_id IN (%(course_id_0_canonical)s, %(course_id_1_canonical)s)', sql)
         self.assertTrue(sql.split('ORDER BY')[0].rstrip().endswith('))'))
 
     @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')

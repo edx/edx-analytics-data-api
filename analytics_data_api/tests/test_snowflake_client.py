@@ -5,10 +5,12 @@ from unittest.mock import Mock, patch
 from django.test import SimpleTestCase, override_settings
 
 from analytics_data_api.snowflake_client import (
+    DEFAULT_QUERY_TIMEOUT_SECONDS,
     QUERY_TAG,
     SnowflakeConfigurationError,
     connect_to_insights_snowflake,
     get_insights_snowflake_config,
+    get_insights_snowflake_query_timeout,
     get_private_key_der,
     get_table_row_count,
     run_read_only_query,
@@ -81,6 +83,26 @@ class SnowflakeClientTests(SimpleTestCase):
             private_key=b'der-key',
             session_parameters={'QUERY_TAG': QUERY_TAG},
         )
+
+    def test_get_insights_snowflake_query_timeout_defaults_when_not_set(self):
+        for config in (VALID_CONFIG, {**VALID_CONFIG, 'QUERY_TIMEOUT_SECONDS': None}):
+            with self.subTest(config=config), override_settings(INSIGHTS_SNOWFLAKE=config):
+                self.assertEqual(get_insights_snowflake_query_timeout(), DEFAULT_QUERY_TIMEOUT_SECONDS)
+
+    def test_get_insights_snowflake_query_timeout_uses_setting(self):
+        for value in (30, '30'):
+            with self.subTest(value=value), override_settings(
+                INSIGHTS_SNOWFLAKE={**VALID_CONFIG, 'QUERY_TIMEOUT_SECONDS': value},
+            ):
+                self.assertEqual(get_insights_snowflake_query_timeout(), 30)
+
+    def test_get_insights_snowflake_query_timeout_rejects_invalid_values(self):
+        for value in (0, -5, 'abc', [30]):
+            with self.subTest(value=value), override_settings(
+                INSIGHTS_SNOWFLAKE={**VALID_CONFIG, 'QUERY_TIMEOUT_SECONDS': value},
+            ):
+                with self.assertRaisesRegex(SnowflakeConfigurationError, 'QUERY_TIMEOUT_SECONDS must be a positive'):
+                    get_insights_snowflake_query_timeout()
 
     def test_validate_snowflake_identifier(self):
         self.assertEqual(validate_snowflake_identifier('course_activity_weekly', 'table'), 'COURSE_ACTIVITY_WEEKLY')

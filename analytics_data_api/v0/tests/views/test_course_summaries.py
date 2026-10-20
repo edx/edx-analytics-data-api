@@ -9,6 +9,7 @@ from django_dynamic_fixture import G
 
 from analytics_data_api.constants import enrollment_modes
 from analytics_data_api.middleware import thread_data
+from analytics_data_api.snowflake_client import SnowflakeQueryTimeoutError
 from analytics_data_api.tests.test_utils import set_databases
 from analytics_data_api.v0 import models, serializers
 from analytics_data_api.v0.tests.views import APIListViewTestMixin, CourseSamples, VerifyCourseIdMixin
@@ -320,6 +321,27 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
             recent_date=None,
             exclude=['programs', 'created'],
         )
+
+    def test_get_returns_504_when_snowflake_cancels_the_query(self):
+        course_id = CourseSamples.course_ids[1]
+
+        with patch(
+                'analytics_data_api.v0.views.course_summaries.is_course_summaries_snowflake_enabled',
+                return_value=True,
+        ):
+            with patch(
+                    'analytics_data_api.v0.views.course_summaries.get_course_summaries',
+                    side_effect=SnowflakeQueryTimeoutError('Snowflake canceled the query.'),
+            ):
+                response = self.authenticated_get(
+                    self.path({self.ids_param: [course_id]}).replace('/api/v0/', '/api/v1/')
+                )
+
+        self.assertEqual(response.status_code, 504)
+        self.assertEqual(response.json(), {
+            'error_code': 'snowflake_query_timeout',
+            'developer_message': 'Snowflake canceled the query.',
+        })
 
     def test_post_uses_snowflake_service_with_programs_and_recent_date(self):
         course_id = CourseSamples.course_ids[1]

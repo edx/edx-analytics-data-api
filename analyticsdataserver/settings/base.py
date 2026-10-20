@@ -220,6 +220,7 @@ MIDDLEWARE = [
     'analytics_data_api.middleware.CourseKeyMalformedErrorMiddleware',
     'analytics_data_api.middleware.ReportFileNotFoundErrorMiddleware',
     'analytics_data_api.middleware.CannotCreateDownloadLinkErrorMiddleware',
+    'analytics_data_api.middleware.SnowflakeQueryTimeoutErrorMiddleware',
     'analytics_data_api.middleware.RequestVersionMiddleware',
 ]
 ########## END MIDDLEWARE CONFIGURATION
