@@ -176,6 +176,16 @@ class InsightsSnowflakeCourseIdTests(SimpleTestCase):
         self.assertIsNone(get_response_course_id(None))
         self.assertEqual(get_response_course_id('not-a-course-key'), 'not-a-course-key')
 
+    def test_build_preferred_course_id_filter_without_course_ids_adds_no_filter(self):
+        course_filter, params = build_preferred_course_id_filter(
+            'PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY',
+            'course_id',
+            [],
+        )
+
+        self.assertEqual(course_filter, '')
+        self.assertEqual(params, {})
+
     def test_build_preferred_course_id_filter_prefers_canonical_rows(self):
         course_filter, params = build_preferred_course_id_filter(
             'PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY',
