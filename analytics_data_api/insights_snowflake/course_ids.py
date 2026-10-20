@@ -64,12 +64,23 @@ def _placeholders(param_names):
     return ', '.join('%({})s'.format(param_name) for param_name in param_names)
 
 
+def _canonical_course_id_sql(alias, column_name):
+    """Return SQL that rebuilds the ``course-v1`` ID of a legacy ID stored in ``alias.column_name``.
+
+    ``_is_plain_legacy_course_id`` is the same rule in Python, so change both
+    together.
+    """
+    return "CONCAT('course-v1:', REPLACE({alias}.{column}, '/', '+'))".format(alias=alias, column=column_name)
+
+
 def _is_plain_legacy_course_id(canonical_course_id, legacy_course_id):
     """Return whether the canonical ID is the legacy ID in ``course-v1`` form.
 
-    The list filter rebuilds a legacy row's canonical ID in SQL, which only
-    works for plain course keys. Keys with a branch or version keep their own
-    clause.
+    This is the rule of ``_canonical_course_id_sql``, which the list filter uses
+    to match a legacy row to its canonical ID. Plain course keys from
+    ``get_course_id_variants`` follow it. Keys with a branch or version do not,
+    so they keep their own clause, and the filter still selects the same rows if
+    the two rules ever differ.
     """
     return canonical_course_id == 'course-v1:{}'.format(legacy_course_id.replace('/', '+'))
 
@@ -106,7 +117,7 @@ def _course_id_list_clause(table_name, column_name, alias, scope_columns, canoni
 
     ``legacy_params`` maps the canonical parameter of each course that has a
     legacy form to its legacy parameter. A legacy row is matched to its
-    canonical ID with the same expression as the unfiltered filter.
+    canonical ID with ``_canonical_course_id_sql``, as in the unfiltered filter.
     """
     conditions = ['{alias}.{column} IN ({placeholders})'.format(
         alias=alias,
@@ -118,13 +129,14 @@ def _course_id_list_clause(table_name, column_name, alias, scope_columns, canoni
             '({alias}.{column} IN ({legacy_placeholders}) AND NOT EXISTS ('
             'SELECT 1 FROM {table_name} AS canonical '
             'WHERE canonical.{column} IN ({canonical_placeholders}) '
-            "AND canonical.{column} = CONCAT('course-v1:', REPLACE({alias}.{column}, '/', '+'))"
+            'AND canonical.{column} = {canonical_course_id}'
             '{scope_clause}))'.format(
                 alias=alias,
                 column=column_name,
                 legacy_placeholders=_placeholders(legacy_params.values()),
                 table_name=table_name,
                 canonical_placeholders=_placeholders(legacy_params.keys()),
+                canonical_course_id=_canonical_course_id_sql(alias, column_name),
                 scope_clause=_scope_clause(alias, 'canonical', scope_columns),
             )
         )
@@ -209,7 +221,7 @@ def build_unfiltered_course_id_filter(
         "OR POSITION('/' IN {alias}.{column}) = 0 "
         'OR NOT EXISTS ('
         'SELECT 1 FROM {table_name} AS {canonical_alias} '
-        "WHERE {canonical_alias}.{column} = CONCAT('course-v1:', REPLACE({alias}.{column}, '/', '+'))"
+        'WHERE {canonical_alias}.{column} = {canonical_course_id}'
         '{scope_clause})'
         ')'
     ).format(
@@ -217,6 +229,7 @@ def build_unfiltered_course_id_filter(
         column=column_name,
         table_name=table_name,
         canonical_alias=canonical_alias,
+        canonical_course_id=_canonical_course_id_sql(alias, column_name),
         scope_clause=_scope_clause(alias, canonical_alias, scope_columns),
     )
     return '{} {}'.format(prefix, condition) if prefix else condition, {}
