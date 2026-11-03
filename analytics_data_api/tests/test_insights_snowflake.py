@@ -20,7 +20,11 @@ from analytics_data_api.insights_snowflake.course_ids import (
     get_response_course_id,
 )
 from analytics_data_api.insights_snowflake.mappers.activity import map_course_activity_weekly_rows
-from analytics_data_api.insights_snowflake.mappers.course_summaries import map_course_summary_rows
+from analytics_data_api.insights_snowflake.mappers.course_summaries import (
+    FIELDS_WITHOUT_RANGE_DATA,
+    _clear_fields_without_range_data,
+    map_course_summary_rows,
+)
 from analytics_data_api.insights_snowflake.mappers.enrollment import (
     map_course_enrollment_daily_rows,
     map_course_enrollment_education_rows,
@@ -37,11 +41,15 @@ from analytics_data_api.insights_snowflake.mappers.videos import map_course_vide
 from analytics_data_api.insights_snowflake.queries.activity import get_course_activity_weekly_rows
 from analytics_data_api.insights_snowflake.queries.course_summaries import (
     COURSE_ENROLLMENT_DAILY_TABLE,
+    COURSE_ENROLLMENT_MODE_DAILY_TABLE,
     COURSE_META_SUMMARY_ENROLLMENT_TABLE,
 )
 from analytics_data_api.insights_snowflake.queries.course_summaries import \
     COURSE_PROGRAM_METADATA_TABLE as COURSE_SUMMARY_PROGRAM_METADATA_TABLE
 from analytics_data_api.insights_snowflake.queries.course_summaries import (
+    get_course_enrollment_latest_date,
+    get_course_range_enrollment_rows,
+    get_course_range_mode_enrollment_rows,
     get_course_recent_enrollment_rows,
     get_course_summary_program_rows,
     get_course_summary_rows,
@@ -89,6 +97,7 @@ from analytics_data_api.insights_snowflake.service import (
     get_problem_answer_distribution,
     get_program_metadata,
     get_video_timeline,
+    resolve_date_window,
 )
 from analytics_data_api.insights_snowflake.toggles import (
     COURSE_ACTIVITY_SNOWFLAKE_FLAG,
@@ -1642,6 +1651,9 @@ class InsightsSnowflakeServiceTests(SimpleTestCase):
             program_rows=program_rows,
             recent_rows=recent_rows,
             exclude=['created'],
+            range_rows=None,
+            range_mode_rows=None,
+            range_window=None,
         )
 
     @patch('analytics_data_api.insights_snowflake.service.map_course_summary_rows')
@@ -1665,7 +1677,339 @@ class InsightsSnowflakeServiceTests(SimpleTestCase):
         mock_get_summary_rows.assert_called_once_with(course_ids=None)
         mock_get_program_rows.assert_not_called()
         mock_get_recent_rows.assert_not_called()
-        mock_map_rows.assert_called_once_with(summary_rows, program_rows=None, recent_rows=None, exclude=None)
+        mock_map_rows.assert_called_once_with(
+            summary_rows,
+            program_rows=None,
+            recent_rows=None,
+            exclude=None,
+            range_rows=None,
+            range_mode_rows=None,
+            range_window=None,
+        )
+
+
+class InsightsSnowflakeCourseSummaryDateRangeTests(SimpleTestCase):  # pylint: disable=too-many-public-methods
+    """Cover course summaries for a date range: the window, the queries, and the counts that replace the summary's."""
+
+    LATEST = datetime.date(2026, 10, 24)
+    BEFORE_START = datetime.date(2026, 10, 20)
+
+    @staticmethod
+    def summary_row(mode, count, cumulative_count, course_id=COURSE_ID):
+        return {
+            'course_id': course_id,
+            'catalog_course_title': 'Title',
+            'catalog_course': 'Catalog',
+            'start_time': None,
+            'end_time': None,
+            'pacing_type': 'self_paced',
+            'availability': 'Current',
+            'enrollment_mode': mode,
+            'count': count,
+            'cumulative_count': cumulative_count,
+            'count_change_7_days': 2,
+            'passing_users': 1,
+            'created': datetime.datetime(2026, 10, 25, tzinfo=datetime.timezone.utc),
+        }
+
+    @staticmethod
+    def range_row(date, count, cumulative_count, course_id=COURSE_ID, mode=None):
+        row = {'course_id': course_id, 'date': date, 'count': count, 'cumulative_count': cumulative_count}
+        if mode:
+            row['mode'] = mode
+        return row
+
+    def test_resolve_date_window_for_last_days_ends_on_the_latest_date(self):
+        self.assertEqual(
+            resolve_date_window({'last_days': 7}, self.LATEST),
+            (datetime.date(2026, 10, 17), self.LATEST),
+        )
+        self.assertEqual(resolve_date_window({'last_days': 1}, self.LATEST), (datetime.date(2026, 10, 23), self.LATEST))
+
+    def test_resolve_date_window_for_dates_caps_the_end_at_the_latest_date(self):
+        self.assertEqual(
+            resolve_date_window(
+                {'start_date': datetime.date(2026, 10, 21), 'end_date': datetime.date(2026, 10, 22)}, self.LATEST,
+            ),
+            (self.BEFORE_START, datetime.date(2026, 10, 22)),
+        )
+        self.assertEqual(
+            resolve_date_window(
+                {'start_date': datetime.date(2026, 10, 21), 'end_date': datetime.date(2026, 10, 28)}, self.LATEST,
+            ),
+            (self.BEFORE_START, self.LATEST),
+        )
+
+    def test_resolve_date_window_after_the_latest_date_is_empty(self):
+        self.assertEqual(
+            resolve_date_window(
+                {'start_date': datetime.date(2026, 10, 27), 'end_date': datetime.date(2026, 10, 28)}, self.LATEST,
+            ),
+            (self.LATEST, self.LATEST),
+        )
+
+    def test_resolve_date_window_without_data(self):
+        self.assertIsNone(resolve_date_window({'last_days': 7}, None))
+
+    def test_resolve_date_window_from_the_first_date(self):
+        self.assertEqual(
+            resolve_date_window({'start_date': datetime.date.min, 'end_date': self.LATEST}, self.LATEST),
+            (datetime.date.min, self.LATEST),
+        )
+
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.course_summaries.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY')
+    )
+    def test_get_course_enrollment_latest_date(self, mock_fetch_all):
+        mock_fetch_all.return_value = [{'latest_date': datetime.datetime(2026, 10, 24, 5)}]
+        self.assertEqual(get_course_enrollment_latest_date(), self.LATEST)
+        sql, params = mock_fetch_all.call_args[0]
+        self.assertIn('MAX("DATE") AS latest_date', sql)
+        self.assertIn('FROM PROD.INSIGHTS.COURSE_ENROLLMENT_DAILY', sql)
+        self.assertEqual(params, {})
+
+        mock_fetch_all.return_value = [{'latest_date': None}]
+        self.assertIsNone(get_course_enrollment_latest_date())
+
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.get_qualified_table_name')
+    def test_range_queries_read_the_two_dates_of_the_requested_courses(self, mock_get_table_name, mock_fetch_all):
+        mock_get_table_name.side_effect = 'PROD.INSIGHTS.{}'.format
+        dates = [self.BEFORE_START, self.LATEST]
+
+        for query_function, table, scope in [
+            (get_course_range_enrollment_rows, COURSE_ENROLLMENT_DAILY_TABLE, 'EQUAL_NULL(canonical_0."DATE"'),
+            (get_course_range_mode_enrollment_rows, COURSE_ENROLLMENT_MODE_DAILY_TABLE, 'canonical_0.mode'),
+        ]:
+            query_function(course_ids=[COURSE_ID], dates=dates)
+
+            mock_get_table_name.assert_called_with(table)
+            sql, params = mock_fetch_all.call_args[0]
+            self.assertIn('FROM PROD.INSIGHTS.{} AS source'.format(table), sql)
+            self.assertIn('WHERE "DATE" IN (%(date_0)s, %(date_1)s)', sql)
+            self.assertIn('cumulative_count', sql)
+            self.assertIn(scope, sql)
+            self.assertEqual(params, {'date_0': self.BEFORE_START, 'date_1': self.LATEST, **COURSE_ID_PARAMS})
+
+    @patch('analytics_data_api.insights_snowflake.queries.course_summaries.fetch_all')
+    @patch(
+        'analytics_data_api.insights_snowflake.queries.course_summaries.get_qualified_table_name',
+        Mock(return_value='PROD.INSIGHTS.COURSE_ENROLLMENT_MODE_DAILY')
+    )
+    def test_range_queries_without_course_ids_read_every_course(self, mock_fetch_all):
+        get_course_range_mode_enrollment_rows(dates=[self.LATEST])
+
+        sql, params = mock_fetch_all.call_args[0]
+        self.assertIn('WHERE "DATE" IN (%(date_0)s)', sql)
+        self.assertIn("POSITION('/' IN source.course_id)", sql)
+        self.assertIn('mode', sql)
+        self.assertEqual(params, {'date_0': self.LATEST})
+
+    def test_map_course_summary_rows_uses_the_counts_of_the_range(self):
+        summary_rows = [
+            self.summary_row(enrollment_modes.AUDIT, 100, 150),
+            self.summary_row(enrollment_modes.PROFESSIONAL, 10, 12),
+            self.summary_row(enrollment_modes.PROFESSIONAL_NO_ID, 5, 6),
+        ]
+        range_rows = [
+            self.range_row(self.BEFORE_START, 90, 120),
+            self.range_row(self.LATEST, 95, 130),
+        ]
+        range_mode_rows = [
+            self.range_row(self.BEFORE_START, 80, 105, mode=enrollment_modes.AUDIT),
+            self.range_row(self.LATEST, 84, 113, mode=enrollment_modes.AUDIT),
+            self.range_row(self.LATEST, 7, 9, mode=enrollment_modes.PROFESSIONAL),
+            self.range_row(self.LATEST, 4, 8, mode=enrollment_modes.PROFESSIONAL_NO_ID),
+            self.range_row(self.BEFORE_START, 3, 6, mode=enrollment_modes.PROFESSIONAL_NO_ID),
+        ]
+
+        summary = map_course_summary_rows(
+            summary_rows,
+            range_rows=range_rows,
+            range_mode_rows=range_mode_rows,
+            range_window=(self.BEFORE_START, self.LATEST),
+        )[0]
+
+        self.assertEqual(summary['count'], 95)
+        self.assertEqual(summary['cumulative_count'], 10)
+        self.assertEqual(summary['enrollment_modes'][enrollment_modes.AUDIT]['count'], 84)
+        self.assertEqual(summary['enrollment_modes'][enrollment_modes.AUDIT]['cumulative_count'], 8)
+        # Professional without ID is merged into professional, as without a range.
+        self.assertNotIn(enrollment_modes.PROFESSIONAL_NO_ID, summary['enrollment_modes'])
+        self.assertEqual(summary['enrollment_modes'][enrollment_modes.PROFESSIONAL]['count'], 11)
+        self.assertEqual(summary['enrollment_modes'][enrollment_modes.PROFESSIONAL]['cumulative_count'], 11)
+        # A mode without rows has nothing in the range.
+        self.assertEqual(summary['enrollment_modes'][enrollment_modes.VERIFIED]['count'], 0)
+        self.assertEqual(summary['enrollment_modes'][enrollment_modes.VERIFIED]['cumulative_count'], 0)
+        # The other counts don't follow the range.
+        self.assertEqual(summary['count_change_7_days'], 6)
+        self.assertEqual(summary['passing_users'], 3)
+        self.assertEqual(summary['enrollment_modes'][enrollment_modes.AUDIT]['count_change_7_days'], 2)
+
+    def test_map_course_summary_rows_counts_zero_for_a_course_without_range_rows(self):
+        summary = map_course_summary_rows(
+            [self.summary_row(enrollment_modes.AUDIT, 100, 150)],
+            range_rows=[self.range_row(self.LATEST, 5, 5, course_id=SECOND_COURSE_ID)],
+            range_mode_rows=[],
+            range_window=(self.BEFORE_START, self.LATEST),
+        )[0]
+
+        self.assertEqual(summary['count'], 0)
+        self.assertEqual(summary['cumulative_count'], 0)
+        self.assertEqual(summary['enrollment_modes'][enrollment_modes.AUDIT]['count'], 0)
+
+    def test_map_course_summary_rows_counts_a_course_that_started_in_the_range(self):
+        summary = map_course_summary_rows(
+            [self.summary_row(enrollment_modes.AUDIT, 100, 150)],
+            range_rows=[self.range_row(self.LATEST, 40, 42)],
+            range_mode_rows=[],
+            range_window=(self.BEFORE_START, self.LATEST),
+        )[0]
+
+        self.assertEqual(summary['count'], 40)
+        self.assertEqual(summary['cumulative_count'], 42)
+
+    def test_map_course_summary_rows_uses_one_row_for_an_empty_range(self):
+        summary = map_course_summary_rows(
+            [self.summary_row(enrollment_modes.AUDIT, 100, 150)],
+            range_rows=[self.range_row(self.LATEST, 40, 42)],
+            range_mode_rows=[],
+            range_window=(self.LATEST, self.LATEST),
+        )[0]
+
+        self.assertEqual(summary['count'], 40)
+        self.assertEqual(summary['cumulative_count'], 0)
+
+    def test_map_course_summary_rows_prefers_canonical_range_rows(self):
+        summary = map_course_summary_rows(
+            [self.summary_row(enrollment_modes.AUDIT, 100, 150)],
+            range_rows=[
+                self.range_row(self.LATEST, 999, 999, course_id=LEGACY_COURSE_ID),
+                self.range_row(self.LATEST, 40, 42),
+            ],
+            range_mode_rows=[],
+            range_window=(self.BEFORE_START, self.LATEST),
+        )[0]
+
+        self.assertEqual(summary['count'], 40)
+
+    def test_map_course_summary_rows_without_data_counts_zero(self):
+        summary = map_course_summary_rows(
+            [self.summary_row(enrollment_modes.AUDIT, 100, 150)],
+            range_rows=[],
+            range_mode_rows=[],
+            range_window=None,
+        )[0]
+
+        self.assertEqual(summary['count'], 0)
+        self.assertEqual(summary['cumulative_count'], 0)
+        self.assertEqual(summary['count_change_7_days'], 2)
+
+    def test_map_course_summary_rows_without_a_range_is_unchanged(self):
+        summary = map_course_summary_rows([self.summary_row(enrollment_modes.AUDIT, 100, 150)])[0]
+
+        self.assertEqual(summary['count'], 100)
+        self.assertEqual(summary['cumulative_count'], 150)
+
+    def test_clear_fields_without_range_data(self):
+        summary = {field: 1 for field in FIELDS_WITHOUT_RANGE_DATA}
+        summary['count'] = 5
+
+        _clear_fields_without_range_data(summary)
+
+        self.assertEqual(summary, {**{field: None for field in FIELDS_WITHOUT_RANGE_DATA}, 'count': 5})
+        empty = {'count': 5}
+        _clear_fields_without_range_data(empty)
+        self.assertEqual(empty, {'count': 5})
+
+    @patch('analytics_data_api.insights_snowflake.service.map_course_summary_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_range_mode_enrollment_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_range_enrollment_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_enrollment_latest_date')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_summary_rows')
+    def test_get_course_summaries_with_a_date_range(
+            self,
+            mock_get_summary_rows,
+            mock_get_latest_date,
+            mock_get_range_rows,
+            mock_get_range_mode_rows,
+            mock_map_rows,
+    ):
+        mock_get_summary_rows.return_value = summary_rows = [{'course_id': COURSE_ID}]
+        mock_get_latest_date.return_value = self.LATEST
+        mock_get_range_rows.return_value = range_rows = [{'course_id': COURSE_ID}]
+        mock_get_range_mode_rows.return_value = range_mode_rows = [{'course_id': COURSE_ID, 'mode': 'audit'}]
+
+        get_course_summaries(course_ids=[COURSE_ID], date_range={'last_days': 4})
+
+        dates = [self.BEFORE_START, self.LATEST]
+        mock_get_range_rows.assert_called_once_with(course_ids=[COURSE_ID], dates=dates)
+        mock_get_range_mode_rows.assert_called_once_with(course_ids=[COURSE_ID], dates=dates)
+        mock_map_rows.assert_called_once_with(
+            summary_rows,
+            program_rows=None,
+            recent_rows=None,
+            exclude=None,
+            range_rows=range_rows,
+            range_mode_rows=range_mode_rows,
+            range_window=(self.BEFORE_START, self.LATEST),
+        )
+
+    @patch('analytics_data_api.insights_snowflake.service.map_course_summary_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_range_mode_enrollment_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_range_enrollment_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_enrollment_latest_date')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_summary_rows')
+    def test_get_course_summaries_with_a_date_range_reads_one_date_once(
+            self,
+            mock_get_summary_rows,
+            mock_get_latest_date,
+            mock_get_range_rows,
+            mock_get_range_mode_rows,
+            _mock_map_rows,
+    ):
+        mock_get_summary_rows.return_value = []
+        mock_get_latest_date.return_value = self.LATEST
+
+        get_course_summaries(date_range={
+            'start_date': datetime.date(2026, 11, 1),
+            'end_date': datetime.date(2026, 11, 2),
+        })
+
+        mock_get_range_rows.assert_called_once_with(course_ids=None, dates=[self.LATEST])
+        mock_get_range_mode_rows.assert_called_once_with(course_ids=None, dates=[self.LATEST])
+
+    @patch('analytics_data_api.insights_snowflake.service.map_course_summary_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_range_mode_enrollment_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_range_enrollment_rows')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_enrollment_latest_date')
+    @patch('analytics_data_api.insights_snowflake.service.get_course_summary_rows')
+    def test_get_course_summaries_with_a_date_range_and_no_data(
+            self,
+            mock_get_summary_rows,
+            mock_get_latest_date,
+            mock_get_range_rows,
+            mock_get_range_mode_rows,
+            mock_map_rows,
+    ):
+        mock_get_summary_rows.return_value = summary_rows = []
+        mock_get_latest_date.return_value = None
+
+        get_course_summaries(date_range={'last_days': 7})
+
+        mock_get_range_rows.assert_not_called()
+        mock_get_range_mode_rows.assert_not_called()
+        mock_map_rows.assert_called_once_with(
+            summary_rows,
+            program_rows=None,
+            recent_rows=None,
+            exclude=None,
+            range_rows=[],
+            range_mode_rows=[],
+            range_window=None,
+        )
 
 
 class BaseTestView:
