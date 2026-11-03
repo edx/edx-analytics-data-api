@@ -1,5 +1,7 @@
 """Service functions for Snowflake-backed Insights endpoints."""
 
+import datetime
+
 from analytics_data_api.insights_snowflake.mappers.activity import map_course_activity_weekly_rows
 from analytics_data_api.insights_snowflake.mappers.course_summaries import map_course_summary_rows
 from analytics_data_api.insights_snowflake.mappers.enrollment import (
@@ -17,6 +19,9 @@ from analytics_data_api.insights_snowflake.mappers.programs import map_program_m
 from analytics_data_api.insights_snowflake.mappers.videos import map_course_video_rows, map_video_timeline_rows
 from analytics_data_api.insights_snowflake.queries.activity import get_course_activity_weekly_rows
 from analytics_data_api.insights_snowflake.queries.course_summaries import (
+    get_course_enrollment_latest_date,
+    get_course_range_enrollment_rows,
+    get_course_range_mode_enrollment_rows,
     get_course_recent_enrollment_rows,
     get_course_summary_program_rows,
     get_course_summary_rows,
@@ -78,8 +83,30 @@ def get_program_metadata(program_ids=None):
     return map_program_metadata_rows(rows)
 
 
-def get_course_summaries(course_ids=None, include_programs=False, recent_date=None, exclude=None):
-    """Return course summaries in the existing API response shape."""
+def resolve_date_window(date_range, latest_date):
+    """Return (the day before a date range starts, the day it ends), or None when there is no data (latest_date None).
+
+    date_range is {'last_days': N}, the N days that end on the latest date of the data, or {'start_date': ...,
+    'end_date': ...}, both included, with the end moved back to the latest date when it is later. A range that starts
+    after the latest date has no enrollments: its window is (latest date, latest date).
+    """
+    if latest_date is None:
+        return None
+    if 'last_days' in date_range:
+        end_date = latest_date
+        start_date = end_date - datetime.timedelta(days=date_range['last_days'] - 1)
+    else:
+        end_date = min(date_range['end_date'], latest_date)
+        start_date = date_range['start_date']
+    before_start = start_date - datetime.timedelta(days=1) if start_date > datetime.date.min else start_date
+    return min(before_start, end_date), end_date
+
+
+def get_course_summaries(course_ids=None, include_programs=False, recent_date=None, exclude=None, date_range=None):
+    """Return course summaries in the existing API response shape.
+
+    With date_range (see resolve_date_window), the enrollment counts are those of the range.
+    """
     summary_rows = get_course_summary_rows(course_ids=course_ids)
     program_rows = get_course_summary_program_rows(course_ids=course_ids) if include_programs else None
     recent_rows = get_course_recent_enrollment_rows(
@@ -87,11 +114,23 @@ def get_course_summaries(course_ids=None, include_programs=False, recent_date=No
         recent_date=recent_date,
     ) if recent_date else None
 
+    range_rows = range_mode_rows = range_window = None
+    if date_range:
+        range_window = resolve_date_window(date_range, get_course_enrollment_latest_date())
+        range_rows, range_mode_rows = [], []
+        if range_window:
+            dates = sorted(set(range_window))
+            range_rows = get_course_range_enrollment_rows(course_ids=course_ids, dates=dates)
+            range_mode_rows = get_course_range_mode_enrollment_rows(course_ids=course_ids, dates=dates)
+
     return map_course_summary_rows(
         summary_rows,
         program_rows=program_rows,
         recent_rows=recent_rows,
         exclude=exclude,
+        range_rows=range_rows,
+        range_mode_rows=range_mode_rows,
+        range_window=range_window,
     )
 
 
