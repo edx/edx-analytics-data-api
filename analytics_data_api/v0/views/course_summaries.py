@@ -13,6 +13,9 @@ from analytics_data_api.v0 import models, serializers
 from analytics_data_api.v0.views import APIListView
 from analytics_data_api.v0.views.utils import split_query_argument, validate_course_id
 
+# The longest last_days accepted: older than any course, and small enough that the dates it gives are valid.
+MAX_LAST_DAYS = 10000
+
 
 class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
     """
@@ -48,6 +51,10 @@ class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
             * count_change_7_days: Total difference in enrollment counts over the past 7 days across modes.
             * recent_count_change: If a recent_date parameter was given, this will be the count change since that date
             * enrollment_modes: For each enrollment mode, the count, cumulative_count, and count_change_7_days.
+
+        With a date range (last_days, or start_date and end_date), count is the count on the range's end date and
+        cumulative_count the number of enrollments made in the range, in total and for each mode. The other values
+        are unchanged, except those that have no data by date yet, which are null.
             * created: The date the counts were computed.
             * programs: List of program IDs that this course is a part of.
 
@@ -68,6 +75,11 @@ class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
         programs -- If included in the query parameters, will find each courses' program IDs
             and include them in the response.
         recent_date -- A date in the past to compute enrollement count change relative to, format should be YYYY-MM-DD
+        last_days -- A date range: the given number of days (1 to 10000) that end on the latest date of the
+            enrollment data, which is usually a day or two before today.
+        start_date, end_date -- A date range from start_date to end_date, both included, format YYYY-MM-DD. Both are
+            required; an end_date after the latest date of the enrollment data is moved back to that date. Use
+            either last_days or start_date and end_date. A date range requires the Snowflake data source.
 
     **Notes**
 
@@ -86,6 +98,7 @@ class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
     summary_meta_fields = ['catalog_course_title', 'catalog_course', 'start_time', 'end_time',
                            'pacing_type', 'availability']  # fields to extract from summary model
     recent_date = None
+    date_range = None
 
     def get(self, request, *args, **kwargs):
         query_params = self.request.query_params
@@ -98,6 +111,12 @@ class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
             self.verify_recent_date(recent)
         except ValueError as err:
             return HttpResponseBadRequest(content='Error in recent_date: {}\n'.format(str(err)))
+
+        error = self.verify_date_range(
+            query_params.get('start_date'), query_params.get('end_date'), query_params.get('last_days'),
+        )
+        if error:
+            return error
 
         response = super().get(request, *args, **kwargs)
         return response
@@ -118,6 +137,13 @@ class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
         except ValueError as err:
             return HttpResponseBadRequest(content='Error in recent_date: {}\n'.format(str(err)))
 
+        # Post arguments always come in as lists.
+        error = self.verify_date_range(*[
+            (request_data_dict.get(name) or [None])[0] for name in ('start_date', 'end_date', 'last_days')
+        ])
+        if error:
+            return error
+
         response = super().post(request, *args, **kwargs)
         return response
 
@@ -127,6 +153,46 @@ class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
         self.recent_date = datetime.strptime(recent, '%Y-%m-%d')
         if (datetime.now() - self.recent_date).days <= 0:
             raise ValueError(f'"{self.recent_date}" is not in the past')
+
+    def verify_date_range(self, start, end, last_days):
+        """
+        Set self.date_range from the request's start_date, end_date and last_days. Returns a 400 response when they
+        are invalid, or when the request doesn't read from Snowflake (only Snowflake has the counts by date), and
+        None otherwise.
+        """
+        try:
+            self.date_range = self.parse_date_range(start, end, last_days)
+        except ValueError as err:
+            return HttpResponseBadRequest(content='Error in date range: {}\n'.format(str(err)))
+        if self.date_range and not is_course_summaries_snowflake_enabled(self.request):
+            return HttpResponseBadRequest(content='Error in date range: a date range requires Snowflake\n')
+        return None
+
+    @staticmethod
+    def parse_date_range(start, end, last_days):
+        """
+        Return {'last_days': N} or {'start_date': date, 'end_date': date}, or None when no range is given. Raises
+        ValueError for an invalid range.
+        """
+        if not (start or end or last_days):
+            return None
+        if last_days:
+            if start or end:
+                raise ValueError('use either last_days or start_date and end_date')
+            try:
+                days = int(last_days)
+            except ValueError as err:
+                raise ValueError(f'last_days "{last_days}" is not a whole number') from err
+            if not 1 <= days <= MAX_LAST_DAYS:
+                raise ValueError(f'last_days must be between 1 and {MAX_LAST_DAYS}')
+            return {'last_days': days}
+        if not (start and end):
+            raise ValueError('start_date and end_date must be given together')
+        start_date = datetime.strptime(start, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end, '%Y-%m-%d').date()
+        if start_date > end_date:
+            raise ValueError(f'start_date "{start}" is after end_date "{end}"')
+        return {'start_date': start_date, 'end_date': end_date}
 
     def verify_ids(self):
         """
@@ -256,6 +322,7 @@ class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
             include_programs=fetch_programs,
             recent_date=self.recent_date if fetch_recents else None,
             exclude=self.exclude,
+            date_range=self.date_range,
         )
         if data:
             return data

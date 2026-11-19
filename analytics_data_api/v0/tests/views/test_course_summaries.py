@@ -320,6 +320,7 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
             include_programs=False,
             recent_date=None,
             exclude=['programs', 'created'],
+            date_range=None,
         )
 
     def test_get_returns_504_when_snowflake_cancels_the_query(self):
@@ -372,3 +373,91 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
         self.assertTrue(kwargs['include_programs'])
         self.assertEqual(kwargs['recent_date'].strftime('%Y-%m-%d'), recent)
         self.assertEqual(kwargs['exclude'], ['created'])
+        self.assertIsNone(kwargs['date_range'])
+
+    def snowflake_range_request(self, method, data):
+        """Request the summaries of one course from the Snowflake path; returns the response and the service mock."""
+        course_id = CourseSamples.course_ids[1]
+        with patch(
+                'analytics_data_api.v0.views.course_summaries.is_course_summaries_snowflake_enabled',
+                return_value=True,
+        ):
+            with patch(
+                    'analytics_data_api.v0.views.course_summaries.get_course_summaries',
+                    return_value=[self.snowflake_summary(course_id)],
+            ) as mock_get_summaries:
+                if method == 'post':
+                    response = self.authenticated_post(
+                        '/api/v1/course_summaries/',
+                        data={
+                            'course_ids': [course_id],
+                            'exclude': ['created'],
+                            **{key: [value] for key, value in data.items()},
+                        },
+                    )
+                else:
+                    response = self.authenticated_get(
+                        self.path({self.ids_param: [course_id], 'exclude': ['created'], **data}).replace(
+                            '/api/v0/', '/api/v1/',
+                        )
+                    )
+        return response, mock_get_summaries
+
+    @ddt.data('get', 'post')
+    def test_last_days_is_passed_to_snowflake(self, method):
+        response, mock_get_summaries = self.snowflake_range_request(method, {'last_days': '30'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_get_summaries.call_args[1]['date_range'], {'last_days': 30})
+
+    @ddt.data('get', 'post')
+    def test_start_and_end_dates_are_passed_to_snowflake(self, method):
+        response, mock_get_summaries = self.snowflake_range_request(
+            method, {'start_date': '2026-10-21', 'end_date': '2026-10-24'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_get_summaries.call_args[1]['date_range'], {
+            'start_date': datetime.date(2026, 10, 21),
+            'end_date': datetime.date(2026, 10, 24),
+        })
+
+    @ddt.data(
+        ('get', {'last_days': 'abc'}),
+        ('get', {'last_days': '0'}),
+        ('get', {'last_days': '10001'}),
+        ('get', {'last_days': '7', 'start_date': '2026-10-21'}),
+        ('get', {'start_date': '2026-10-21'}),
+        ('get', {'end_date': '2026-10-21'}),
+        ('get', {'start_date': '2026-10-24', 'end_date': '2026-10-21'}),
+        ('get', {'start_date': '2026-02-30', 'end_date': '2026-03-01'}),
+        ('post', {'last_days': '-1'}),
+        ('post', {'start_date': 'not a date', 'end_date': '2026-10-21'}),
+    )
+    @ddt.unpack
+    def test_invalid_date_range_returns_400(self, method, data):
+        response, mock_get_summaries = self.snowflake_range_request(method, data)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b'Error in date range', response.content)
+        mock_get_summaries.assert_not_called()
+
+    @ddt.data('get', 'post')
+    def test_date_range_on_aurora_returns_400(self, method):
+        course_id = CourseSamples.course_ids[1]
+        self.generate_data()
+        with patch(
+                'analytics_data_api.v0.views.course_summaries.is_course_summaries_snowflake_enabled',
+                return_value=False,
+        ):
+            if method == 'post':
+                response = self.authenticated_post(
+                    '/api/v1/course_summaries/', data={'course_ids': [course_id], 'last_days': ['7']},
+                )
+            else:
+                response = self.authenticated_get(
+                    self.path({self.ids_param: [course_id], 'last_days': '7'}).replace('/api/v0/', '/api/v1/')
+                )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b'a date range requires Snowflake', response.content)
