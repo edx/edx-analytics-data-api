@@ -47,6 +47,12 @@ class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
             * cumulative_count: The total cumulative total of all users ever enrolled across modes.
             * count_change_7_days: Total difference in enrollment counts over the past 7 days across modes.
             * recent_count_change: If a recent_date parameter was given, this will be the count change since that date
+            * total_engagements: Number of distinct learners who completed any course content in the course run,
+              including learners who have since unenrolled. Null for course runs that started before 2018-01-24,
+              when completion data starts (Snowflake only, otherwise null).
+            * engagement_rate: total_engagements divided by count, as a fraction such as 0.086. It can be above 1,
+              since total_engagements includes learners who have since unenrolled. Null when total_engagements is
+              null or count is 0 (Snowflake only, otherwise null).
             * enrollment_modes: For each enrollment mode, the count, cumulative_count, and count_change_7_days.
             * created: The date the counts were computed.
             * programs: List of program IDs that this course is a part of.

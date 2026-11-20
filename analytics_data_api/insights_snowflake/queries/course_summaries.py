@@ -53,7 +53,8 @@ SELECT
     cumulative_count,
     count_change_7_days,
     passing_users,
-    created
+    created,
+    total_engaged_learners AS total_engagements
 FROM {from_clause}
 {where_clause}
 ORDER BY course_id, enrollment_mode

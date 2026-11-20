@@ -621,6 +621,7 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
         self.assertEqual(rows, [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}])
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('FROM PROD.INSIGHTS.COURSE_META_SUMMARY_ENROLLMENT', sql)
+        self.assertIn('total_engaged_learners AS total_engagements', sql)
         self.assertNotIn('WHERE course_id IN', sql)
         self.assertIn("POSITION('/' IN source.course_id)", sql)
         self.assertEqual(params, {})
@@ -1347,6 +1348,78 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
         self.assertEqual(len(mapped_rows), 1)
         self.assertEqual(mapped_rows[0]['count'], 7)
         self.assertEqual(mapped_rows[0]['enrollment_modes'][enrollment_modes.PROFESSIONAL]['count'], 4)
+
+    def _engagement_row(self, enrollment_mode, count, total_engagements):
+        """Return a course summary row carrying the per course run total_engagements value."""
+        return {
+            'COURSE_ID': COURSE_ID,
+            'CATALOG_COURSE_TITLE': 'Title',
+            'CATALOG_COURSE': 'Catalog',
+            'START_TIME': None,
+            'END_TIME': None,
+            'PACING_TYPE': 'instructor',
+            'AVAILABILITY': 'Current',
+            'ENROLLMENT_MODE': enrollment_mode,
+            'COUNT': count,
+            'CUMULATIVE_COUNT': count,
+            'COUNT_CHANGE_7_DAYS': 0,
+            'PASSING_USERS': 0,
+            'CREATED': datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc),
+            'TOTAL_ENGAGEMENTS': total_engagements,
+        }
+
+    def test_map_course_summary_rows_reads_total_engagements_once_per_course_run(self):
+        summary_rows = [
+            self._engagement_row(enrollment_modes.AUDIT, 300, 43),
+            self._engagement_row(enrollment_modes.VERIFIED, 200, 43),
+        ]
+
+        summary = map_course_summary_rows(summary_rows)[0]
+
+        self.assertEqual(summary['count'], 500)
+        self.assertEqual(summary['total_engagements'], 43)
+        self.assertEqual(summary['engagement_rate'], 0.086)
+        for mode_counts in summary['enrollment_modes'].values():
+            self.assertNotIn('total_engagements', mode_counts)
+
+    def test_map_course_summary_rows_rounds_engagement_rate(self):
+        summary = map_course_summary_rows([self._engagement_row(enrollment_modes.AUDIT, 3, 1)])[0]
+
+        self.assertEqual(summary['engagement_rate'], 0.3333)
+
+    def test_map_course_summary_rows_engagement_rate_is_none_without_enrollment(self):
+        summary = map_course_summary_rows([self._engagement_row(enrollment_modes.AUDIT, 0, 0)])[0]
+
+        self.assertEqual(summary['total_engagements'], 0)
+        self.assertIsNone(summary['engagement_rate'])
+
+    def test_map_course_summary_rows_engagement_rate_can_exceed_one(self):
+        # Engaged learners include those who have since unenrolled, so they can outnumber current enrollment.
+        summary = map_course_summary_rows([self._engagement_row(enrollment_modes.AUDIT, 20, 30)])[0]
+
+        self.assertEqual(summary['engagement_rate'], 1.5)
+
+    def test_map_course_summary_rows_engagement_is_none_for_pre_2018_runs(self):
+        # The warehouse returns null for course runs that started before completion data exists.
+        summary_rows = [
+            self._engagement_row(enrollment_modes.AUDIT, 300, None),
+            self._engagement_row(enrollment_modes.VERIFIED, 200, None),
+        ]
+
+        summary = map_course_summary_rows(summary_rows)[0]
+
+        self.assertEqual(summary['count'], 500)
+        self.assertIsNone(summary['total_engagements'])
+        self.assertIsNone(summary['engagement_rate'])
+
+    def test_map_course_summary_rows_engagement_is_none_when_column_is_missing(self):
+        row = self._engagement_row(enrollment_modes.AUDIT, 10, None)
+        row.pop('TOTAL_ENGAGEMENTS')
+
+        summary = map_course_summary_rows([row])[0]
+
+        self.assertIsNone(summary['total_engagements'])
+        self.assertIsNone(summary['engagement_rate'])
 
 
 class InsightsSnowflakeVideoMapperTests(SimpleTestCase):
