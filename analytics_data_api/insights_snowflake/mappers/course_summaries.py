@@ -16,6 +16,8 @@ SUMMARY_META_FIELDS = (
     'pacing_type',
     'availability',
 )
+# Per course run values repeated on each mode row, so they are read once rather than summed.
+COURSE_RUN_FIELDS = ('total_engagements',)
 
 
 def _row_value(row, name):
@@ -75,6 +77,7 @@ def _base_course_summary(course_id):
         'enrollment_modes': {},
     }
     summary.update({field: 0 for field in COUNT_FIELDS})
+    summary.update({field: None for field in COURSE_RUN_FIELDS})
     summary['enrollment_modes'].update({
         mode: {
             count_field: 0 for count_field in COUNT_FIELDS
@@ -101,6 +104,13 @@ def _recent_counts_by_course(recent_rows):
     }
 
 
+def _engagement_rate(total_engagements, count):
+    """Return engaged learners as a fraction of current enrollment, or None when it can't be computed."""
+    if total_engagements is None or not count:
+        return None
+    return round(total_engagements / count, 4)
+
+
 def _postprocess_course_summary(summary, exclude=None):
     """Apply existing course summary response compatibility rules."""
     modes = summary['enrollment_modes']
@@ -108,6 +118,8 @@ def _postprocess_course_summary(summary, exclude=None):
     prof_mode = modes[enrollment_modes.PROFESSIONAL]
     for count_key in COUNT_FIELDS:
         prof_mode[count_key] = prof_mode.get(count_key, 0) + prof_no_id_mode.pop(count_key, 0)
+
+    summary['engagement_rate'] = _engagement_rate(summary['total_engagements'], summary['count'])
 
     if summary['availability'] == 'Starting Soon':
         summary['availability'] = 'Upcoming'
@@ -139,6 +151,10 @@ def map_course_summary_rows(summary_rows, program_rows=None, recent_rows=None, e
         for row in group:
             for field in SUMMARY_META_FIELDS:
                 summary[field] = _row_value(row, field)
+            for field in COURSE_RUN_FIELDS:
+                value = _optional_row_value(row, field)
+                if value is not None:
+                    summary[field] = int(value)
 
             mode = _row_value(row, 'enrollment_mode')
             summary['enrollment_modes'][mode] = {field: _count_value(row, field) for field in COUNT_FIELDS}
