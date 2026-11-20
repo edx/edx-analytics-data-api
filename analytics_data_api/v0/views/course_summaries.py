@@ -47,6 +47,12 @@ class CourseSummariesView(InsightsDataSourceResponseMixin, APIListView):
             * cumulative_count: The total cumulative total of all users ever enrolled across modes.
             * count_change_7_days: Total difference in enrollment counts over the past 7 days across modes.
             * recent_count_change: If a recent_date parameter was given, this will be the count change since that date
+            * b2b_count: The count of currently enrolled learners who enrolled through a company (B2B) across modes.
+              Null when the data source doesn't have it.
+            * b2c_count: The count of currently enrolled learners who enrolled on their own (B2C) across modes.
+              Null when the data source doesn't have it.
+            * sales_model: B2B or B2C when the course's current learners enrolled only that way, Mixed when both.
+              Null when the course has no current learners or the data source doesn't have it.
             * enrollment_modes: For each enrollment mode, the count, cumulative_count, and count_change_7_days.
             * created: The date the counts were computed.
             * programs: List of program IDs that this course is a part of.

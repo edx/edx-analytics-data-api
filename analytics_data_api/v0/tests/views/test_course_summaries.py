@@ -72,8 +72,12 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
 
         super().generate_data(ids=ids, modes=modes, availability=availability, **kwargs)
 
-    def expected_result(self, item_id, modes=None, availability='Current', programs=False, recent_count_change=None):  # pylint: disable=arguments-differ
-        """Expected summary information for a course and modes to populate with data."""
+    def expected_result(self, item_id, modes=None, availability='Current', programs=False, recent_count_change=None,  # pylint: disable=arguments-differ
+                        sales=None):
+        """
+        Expected summary information for a course and modes to populate with data. `sales` sets b2b_count, b2c_count
+        and sales_model, which are null when the data has none (as from Aurora).
+        """
         summary = super().expected_result(item_id)
 
         if modes is None:
@@ -95,8 +99,12 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
             ('count_change_7_days', count_change_factor * num_modes),
             ('recent_count_change', recent_count_change),
             ('passing_users', count_change_factor * num_modes),
+            ('b2b_count', None),
+            ('b2c_count', None),
+            ('sales_model', None),
             ('enrollment_modes', {}),
         ])
+        summary.update(sales or {})
         summary['enrollment_modes'].update({
             mode: {
                 'count': count_factor,
@@ -125,9 +133,10 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
             summary['programs'] = [CourseSamples.program_ids[0]]
         return summary
 
-    def snowflake_summary(self, course_id, programs=False, recent_count_change=None):
+    def snowflake_summary(self, course_id, programs=False, recent_count_change=None, sales=None):
         """Expected Snowflake summary data before DRF serializer formatting."""
-        summary = self.expected_result(course_id, programs=programs, recent_count_change=recent_count_change)
+        summary = self.expected_result(course_id, programs=programs, recent_count_change=recent_count_change,
+                                       sales=sales)
         summary.update({
             'start_time': datetime.datetime(2016, 10, 11, tzinfo=pytz.utc),
             'end_time': datetime.datetime(2016, 12, 18, tzinfo=pytz.utc),
@@ -298,7 +307,8 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
 
     def test_get_uses_snowflake_service_when_global_flag_enabled(self):
         course_id = CourseSamples.course_ids[1]
-        snowflake_data = [self.snowflake_summary(course_id)]
+        sales = {'b2b_count': 3, 'b2c_count': 7, 'sales_model': 'Mixed'}
+        snowflake_data = [self.snowflake_summary(course_id, sales=sales)]
 
         with patch(
                 'analytics_data_api.v0.views.course_summaries.is_course_summaries_snowflake_enabled',
@@ -313,7 +323,7 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
                 )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [self.expected_result(course_id)])
+        self.assertEqual(response.data, [self.expected_result(course_id, sales=sales)])
         self.assertEqual(response['X-Insights-Data-Source'], 'snowflake')
         mock_get_summaries.assert_called_once_with(
             course_ids=[course_id],

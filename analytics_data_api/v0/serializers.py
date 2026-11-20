@@ -569,6 +569,10 @@ class CourseMetaSummaryEnrollmentSerializer(ModelSerializerWithCreatedField, Dyn
     count_change_7_days = serializers.IntegerField(default=0)
     recent_count_change = serializers.IntegerField(default=None)
     passing_users = serializers.IntegerField(default=0)
+    # Only the Snowflake data has these; null (not 0) from Aurora, so clients know the data is missing.
+    b2b_count = serializers.IntegerField(default=None)
+    b2c_count = serializers.IntegerField(default=None)
+    sales_model = serializers.CharField(default=None)
     enrollment_modes = serializers.SerializerMethodField()
     programs = serializers.SerializerMethodField()
 
