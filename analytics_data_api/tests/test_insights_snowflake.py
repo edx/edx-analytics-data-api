@@ -621,6 +621,8 @@ class InsightsSnowflakeCourseSummaryQueryTests(SimpleTestCase):
         self.assertEqual(rows, [{'course_id': 'course-v1:edX+DemoX+Demo_Course'}])
         sql, params = mock_fetch_all.call_args[0]
         self.assertIn('FROM PROD.INSIGHTS.COURSE_META_SUMMARY_ENROLLMENT', sql)
+        self.assertIn('b2b_count,', sql)
+        self.assertIn('b2c_count,', sql)
         self.assertNotIn('WHERE course_id IN', sql)
         self.assertIn("POSITION('/' IN source.course_id)", sql)
         self.assertEqual(params, {})
@@ -1174,6 +1176,8 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
                 'CUMULATIVE_COUNT': 7,
                 'COUNT_CHANGE_7_DAYS': 1,
                 'PASSING_USERS': None,
+                'B2B_COUNT': 1,
+                'B2C_COUNT': 2,
                 'CREATED': created,
             },
             {
@@ -1189,6 +1193,8 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
                 'CUMULATIVE_COUNT': 8,
                 'COUNT_CHANGE_7_DAYS': 2,
                 'PASSING_USERS': 6,
+                'B2B_COUNT': 0,
+                'B2C_COUNT': 4,
                 'CREATED': later_created,
             },
         ]
@@ -1231,11 +1237,15 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
         self.assertEqual(summary['cumulative_count'], 15)
         self.assertEqual(summary['count_change_7_days'], 3)
         self.assertEqual(summary['passing_users'], 6)
+        self.assertEqual(summary['b2b_count'], 1)
+        self.assertEqual(summary['b2c_count'], 6)
+        self.assertEqual(summary['sales_model'], 'Mixed')
         self.assertEqual(summary['recent_count_change'], 5)
         self.assertEqual(summary['programs'], ['program-1'])
         self.assertNotIn(enrollment_modes.PROFESSIONAL_NO_ID, summary['enrollment_modes'])
         self.assertEqual(summary['enrollment_modes'][enrollment_modes.PROFESSIONAL]['count'], 7)
         self.assertNotIn('passing_users', summary['enrollment_modes'][enrollment_modes.PROFESSIONAL])
+        self.assertNotIn('b2b_count', summary['enrollment_modes'][enrollment_modes.PROFESSIONAL])
 
     def test_map_course_summary_rows_deduplicates_unfiltered_mixed_format_rows(self):
         row = {
@@ -1250,6 +1260,8 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
             'CUMULATIVE_COUNT': 10,
             'COUNT_CHANGE_7_DAYS': 1,
             'PASSING_USERS': 2,
+            'B2B_COUNT': 0,
+            'B2C_COUNT': 10,
             'CREATED': datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc),
         }
         canonical_row = dict(row, COURSE_ID=COURSE_ID)
@@ -1276,6 +1288,8 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
             'CUMULATIVE_COUNT': 1,
             'COUNT_CHANGE_7_DAYS': 0,
             'PASSING_USERS': 0,
+            'B2B_COUNT': 0,
+            'B2C_COUNT': 1,
             'CREATED': datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc),
         }
 
@@ -1297,6 +1311,8 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
             'CUMULATIVE_COUNT': 1,
             'COUNT_CHANGE_7_DAYS': 0,
             'PASSING_USERS': 0,
+            'B2B_COUNT': 0,
+            'B2C_COUNT': 1,
             'CREATED': datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc),
         }
 
@@ -1323,6 +1339,8 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
                 'cumulative_count': 8,
                 'count_change_7_days': 2,
                 'passing_users': 6,
+                'b2b_count': 4,
+                'b2c_count': 0,
                 'created': created,
             },
             {
@@ -1338,6 +1356,8 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
                 'cumulative_count': 7,
                 'count_change_7_days': 1,
                 'passing_users': 0,
+                'b2b_count': 0,
+                'b2c_count': 3,
                 'created': created,
             },
         ]
@@ -1347,6 +1367,38 @@ class InsightsSnowflakeCourseSummaryMapperTests(SimpleTestCase):
         self.assertEqual(len(mapped_rows), 1)
         self.assertEqual(mapped_rows[0]['count'], 7)
         self.assertEqual(mapped_rows[0]['enrollment_modes'][enrollment_modes.PROFESSIONAL]['count'], 4)
+
+    def test_map_course_summary_rows_sets_sales_model(self):
+        row = {
+            'COURSE_ID': COURSE_ID,
+            'CATALOG_COURSE_TITLE': 'Title',
+            'CATALOG_COURSE': 'Catalog',
+            'START_TIME': None,
+            'END_TIME': None,
+            'PACING_TYPE': 'instructor',
+            'AVAILABILITY': 'Current',
+            'ENROLLMENT_MODE': 'audit',
+            'CUMULATIVE_COUNT': 10,
+            'COUNT_CHANGE_7_DAYS': 0,
+            'PASSING_USERS': 0,
+            'CREATED': datetime.datetime(2014, 1, 2, tzinfo=datetime.timezone.utc),
+        }
+        cases = (
+            (5, 0, 'B2B'),
+            (0, 3, 'B2C'),
+            (2, 1, 'Mixed'),
+            (0, 0, None),
+        )
+
+        for b2b_count, b2c_count, sales_model in cases:
+            with self.subTest(b2b_count=b2b_count, b2c_count=b2c_count):
+                mapped_rows = map_course_summary_rows([
+                    dict(row, COUNT=b2b_count + b2c_count, B2B_COUNT=b2b_count, B2C_COUNT=b2c_count),
+                ])
+
+                self.assertEqual(mapped_rows[0]['b2b_count'], b2b_count)
+                self.assertEqual(mapped_rows[0]['b2c_count'], b2c_count)
+                self.assertEqual(mapped_rows[0]['sales_model'], sales_model)
 
 
 class InsightsSnowflakeVideoMapperTests(SimpleTestCase):

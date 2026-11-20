@@ -53,6 +53,8 @@ SELECT
     cumulative_count,
     count_change_7_days,
     passing_users,
+    b2b_count,
+    b2c_count,
     created
 FROM {from_clause}
 {where_clause}

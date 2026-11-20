@@ -8,6 +8,8 @@ from analytics_data_api.constants import enrollment_modes
 from analytics_data_api.insights_snowflake.course_ids import get_course_id_variants, get_response_course_id
 
 COUNT_FIELDS = ('count', 'cumulative_count', 'count_change_7_days', 'passing_users')
+# Learners who enrolled through a company (B2B) or on their own (B2C). Summed per course run only, not per mode.
+SALES_COUNT_FIELDS = ('b2b_count', 'b2c_count')
 SUMMARY_META_FIELDS = (
     'catalog_course_title',
     'catalog_course',
@@ -74,13 +76,26 @@ def _base_course_summary(course_id):
         'created': None,
         'enrollment_modes': {},
     }
-    summary.update({field: 0 for field in COUNT_FIELDS})
+    summary.update({field: 0 for field in COUNT_FIELDS + SALES_COUNT_FIELDS})
     summary['enrollment_modes'].update({
         mode: {
             count_field: 0 for count_field in COUNT_FIELDS
         } for mode in enrollment_modes.ALL
     })
     return summary
+
+
+def _sales_model(summary):
+    """Return B2B, B2C or Mixed from the course run's learners in each, or None when it has none."""
+    has_b2b = summary['b2b_count'] > 0
+    has_b2c = summary['b2c_count'] > 0
+    if has_b2b and has_b2c:
+        return 'Mixed'
+    if has_b2b:
+        return 'B2B'
+    if has_b2c:
+        return 'B2C'
+    return None
 
 
 def _programs_by_course(program_rows):
@@ -146,8 +161,10 @@ def map_course_summary_rows(summary_rows, program_rows=None, recent_rows=None, e
             summary['created'] = max(created, summary['created']) if summary['created'] else created
             summary.update({
                 field: summary[field] + _count_value(row, field)
-                for field in COUNT_FIELDS
+                for field in COUNT_FIELDS + SALES_COUNT_FIELDS
             })
+
+        summary['sales_model'] = _sales_model(summary)
 
         if recent_counts is not None:
             summary['recent_count_change'] = summary['count'] - recent_counts.get(course_id, 0)
