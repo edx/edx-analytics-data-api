@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-24.04
         python-version:
           - 3.11
         targets: [ 'quality','main.test','docs' ]
