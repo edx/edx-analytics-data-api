@@ -569,6 +569,8 @@ class CourseMetaSummaryEnrollmentSerializer(ModelSerializerWithCreatedField, Dyn
     count_change_7_days = serializers.IntegerField(default=0)
     recent_count_change = serializers.IntegerField(default=None)
     passing_users = serializers.IntegerField(default=0)
+    total_engagements = serializers.IntegerField(default=None)
+    engagement_rate = serializers.FloatField(default=None)
     enrollment_modes = serializers.SerializerMethodField()
     programs = serializers.SerializerMethodField()
 

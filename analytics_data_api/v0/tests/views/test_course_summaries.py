@@ -72,7 +72,8 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
 
         super().generate_data(ids=ids, modes=modes, availability=availability, **kwargs)
 
-    def expected_result(self, item_id, modes=None, availability='Current', programs=False, recent_count_change=None):  # pylint: disable=arguments-differ
+    def expected_result(self, item_id, modes=None, availability='Current', programs=False, recent_count_change=None,  # pylint: disable=arguments-differ
+                        total_engagements=None, engagement_rate=None):
         """Expected summary information for a course and modes to populate with data."""
         summary = super().expected_result(item_id)
 
@@ -95,6 +96,8 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
             ('count_change_7_days', count_change_factor * num_modes),
             ('recent_count_change', recent_count_change),
             ('passing_users', count_change_factor * num_modes),
+            ('total_engagements', total_engagements),
+            ('engagement_rate', engagement_rate),
             ('enrollment_modes', {}),
         ])
         summary['enrollment_modes'].update({
@@ -125,9 +128,16 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
             summary['programs'] = [CourseSamples.program_ids[0]]
         return summary
 
-    def snowflake_summary(self, course_id, programs=False, recent_count_change=None):
+    def snowflake_summary(self, course_id, programs=False, recent_count_change=None, total_engagements=None,
+                          engagement_rate=None):
         """Expected Snowflake summary data before DRF serializer formatting."""
-        summary = self.expected_result(course_id, programs=programs, recent_count_change=recent_count_change)
+        summary = self.expected_result(
+            course_id,
+            programs=programs,
+            recent_count_change=recent_count_change,
+            total_engagements=total_engagements,
+            engagement_rate=engagement_rate,
+        )
         summary.update({
             'start_time': datetime.datetime(2016, 10, 11, tzinfo=pytz.utc),
             'end_time': datetime.datetime(2016, 12, 18, tzinfo=pytz.utc),
@@ -372,3 +382,57 @@ class CourseSummariesViewTests(  # pylint: disable=too-many-public-methods
         self.assertTrue(kwargs['include_programs'])
         self.assertEqual(kwargs['recent_date'].strftime('%Y-%m-%d'), recent)
         self.assertEqual(kwargs['exclude'], ['created'])
+
+    def test_get_returns_snowflake_engagement_fields(self):
+        course_id = CourseSamples.course_ids[1]
+        snowflake_data = [self.snowflake_summary(course_id, total_engagements=12, engagement_rate=0.3)]
+
+        with patch(
+                'analytics_data_api.v0.views.course_summaries.is_course_summaries_snowflake_enabled',
+                return_value=True,
+        ):
+            with patch(
+                    'analytics_data_api.v0.views.course_summaries.get_course_summaries',
+                    return_value=snowflake_data,
+            ):
+                response = self.authenticated_get(
+                    self.path({self.ids_param: [course_id], 'exclude': ['created']}).replace('/api/v0/', '/api/v1/')
+                )
+                fields_response = self.authenticated_get(
+                    self.path({
+                        self.ids_param: [course_id],
+                        'fields': ['course_id', 'total_engagements', 'engagement_rate'],
+                    }).replace('/api/v0/', '/api/v1/')
+                )
+                exclude_response = self.authenticated_get(
+                    self.path({
+                        self.ids_param: [course_id],
+                        'exclude': ['created', 'total_engagements', 'engagement_rate'],
+                    }).replace('/api/v0/', '/api/v1/')
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data,
+            [self.expected_result(course_id, total_engagements=12, engagement_rate=0.3)],
+        )
+        self.assertEqual(
+            fields_response.data,
+            [{'course_id': course_id, 'total_engagements': 12, 'engagement_rate': 0.3}],
+        )
+        self.assertNotIn('total_engagements', exclude_response.data[0])
+        self.assertNotIn('engagement_rate', exclude_response.data[0])
+
+    def test_aurora_returns_null_engagement_fields(self):
+        course_id = CourseSamples.course_ids[1]
+        self.generate_data(ids=[course_id])
+
+        with patch(
+                'analytics_data_api.v0.views.course_summaries.is_course_summaries_snowflake_enabled',
+                return_value=False,
+        ):
+            response = self.authenticated_get(self.path({self.ids_param: [course_id], 'exclude': ['created']}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data[0]['total_engagements'])
+        self.assertIsNone(response.data[0]['engagement_rate'])
